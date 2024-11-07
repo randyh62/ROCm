@@ -113,9 +113,9 @@ Performance
 .. csv-table::
   :header: "Component", "Description"
 
-  ":doc:`Omniperf <omniperf:index>`", "System performance profiling tool for machine learning and HPC workloads"
-  ":doc:`Omnitrace <omnitrace:index>`", "Comprehensive profiling and tracing tool for HIP applications"
   ":doc:`ROCm Bandwidth Test <rocm_bandwidth_test:index>`", "Captures the performance characteristics of buffer copying and kernel read/write operations"
+  ":doc:`ROCm Compute Profiler <rocprofiler-compute:index>`", "System performance profiling tool for machine learning and HPC workloads"
+  ":doc:`ROCm Systems Profiler <rocprofiler-systems:index>`", "Comprehensive profiling and tracing tool for HIP applications"
   ":doc:`ROCProfiler <rocprofiler:index>`", "Profiling tool for HIP applications"
   ":doc:`ROCprofiler-SDK <rocprofiler-sdk:index>`", "Toolkit for developing analysis tools for profiling and tracing GPU compute applications. This toolkit is in beta and subject to change"
   ":doc:`ROCTracer <roctracer:index>`", "Intercepts runtime API calls and traces asynchronous activity"
