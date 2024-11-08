@@ -35,6 +35,7 @@
 * {doc}`ROCProfiler <rocprofiler:index>`
 * {doc}`ROCprofiler-SDK <rocprofiler-sdk:index>`
 * {doc}`ROCTracer <roctracer:index>`
+* {doc}`TransferBench <transferbench:index>`
 :::
 
 (development-tools)=
