@@ -95,11 +95,11 @@ article_pages = [
 
 external_toc_path = "./sphinx/_toc.yml"
 
-extensions = ["rocm_docs", "sphinx_reredirects"]
+extensions = ["rocm_docs", "sphinx_reredirects", "sphinx_sitemap"]
 
 external_projects_current_project = "rocm"
 
-html_baseurl = os.environ.get("READTHEDOCS_CANONICAL_URL", "rocm-stg.amd.com")
+html_baseurl = os.environ.get("READTHEDOCS_CANONICAL_URL", "https://rocm-stg.amd.com/")
 html_context = {}
 if os.environ.get("READTHEDOCS", "") == "True":
     html_context["READTHEDOCS"] = True
