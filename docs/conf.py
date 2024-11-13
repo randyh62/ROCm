@@ -117,5 +117,3 @@ html_theme_options = {"link_main_doc": False}
 redirects = {"reference/openmp/openmp": "../../about/compatibility/openmp.html"}
 
 numfig = False
-
-
