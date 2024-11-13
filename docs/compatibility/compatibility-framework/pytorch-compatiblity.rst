@@ -74,7 +74,7 @@ object that you can invoke like any other Torch module, but which utilizes the
 MIGraphX inference engine internally. Torch-MIGraphX supports FP32, FP16, and
 INT8 datatypes.
 
-ROCm 6.1.0
+ROCm 6.0.0
 --------------------------------------------------------------------------------
 
 Upstream support is now available for popular AI frameworks like TensorFlow,
