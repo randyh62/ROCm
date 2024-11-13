@@ -43,10 +43,10 @@ Accelerators and GPUs listed in the following table support compute workloads (n
       ,gfx90a,gfx90a,gfx90a
       ,gfx908,gfx908,gfx908
       ,,,
-      :doc:`FRAMEWORK SUPPORT <compatibility/compatibility-framework>`,.. _framework-support-compatibility-matrix:,,
-      :doc:`PyTorch <compatibility/compatibility-framework/pytorch-compatiblity>`,"2.3, 2.2, 2.1, 2.0, 1.13","2.3, 2.2, 2.1, 2.0, 1.13","2.1, 2.0, 1.13"
-      :doc:`TensorFlow <compatibility/compatibility-framework/tensorflow-compatiblity>`,"2.16.1, 2.15.1, 2.14.1","2.16.1, 2.15.1, 2.14.1","2.15.0, 2.14.0, 2.13.1"
-      :doc:`JAX <compatibility/compatibility-framework/jax-compatiblity>`,0.4.26,0.4.26,0.4.26
+      :doc:`FRAMEWORK SUPPORT <../compatibility/compatibility-framework>`,.. _framework-support-compatibility-matrix:,,
+      :doc:`PyTorch <../compatibility/compatibility-framework/pytorch-compatiblity>`,"2.3, 2.2, 2.1, 2.0, 1.13","2.3, 2.2, 2.1, 2.0, 1.13","2.1, 2.0, 1.13"
+      :doc:`TensorFlow <../compatibility/compatibility-framework/tensorflow-compatiblity>`,"2.16.1, 2.15.1, 2.14.1","2.16.1, 2.15.1, 2.14.1","2.15.0, 2.14.0, 2.13.1"
+      :doc:`JAX <../compatibility/compatibility-framework/jax-compatiblity>`,0.4.26,0.4.26,0.4.26
       `ONNX Runtime <https://onnxruntime.ai/docs/build/eps.html#amd-migraphx>`_,1.17.3,1.17.3,1.17.3
       ,,,
       THIRD PARTY COMMS,.. _thirdpartycomms-support-compatibility-matrix:,,

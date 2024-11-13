@@ -101,15 +101,14 @@ subtrees:
   entries:
   - file: compatibility/compatibility-matrix.rst
     title: Compatibility matrix
-  - file: compatibility/compatibility-framework.rst
     subtrees:
     - entries:
-      - file: compatibility/compatibility-framework/compatibility-framework.rst
-      subtrees:
-      - entries:
-        - file: compatibility/compatibility-framework/compatibility-framework/jax-compatiblity.rst
-        - file: compatibility/compatibility-framework/compatibility-framework/pytorch-compatiblity.rst
-        - file: compatibility/compatibility-framework/compatibility-framework/tensorflow-compatiblity.rst
+      - file: compatibility/compatibility-framework.rst
+        subtrees:
+        - entries:
+          - file: compatibility/compatibility-framework/jax-compatiblity.rst
+          - file: compatibility/compatibility-framework/pytorch-compatiblity.rst
+          - file: compatibility/compatibility-framework/tensorflow-compatiblity.rst
   - url: https://rocm.docs.amd.com/projects/install-on-linux/en/${branch}/reference/system-requirements.html
     title: Linux system requirements
   - url: https://rocm.docs.amd.com/projects/install-on-windows/en/${branch}/reference/system-requirements.html
