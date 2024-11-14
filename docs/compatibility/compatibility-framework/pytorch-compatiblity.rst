@@ -107,87 +107,164 @@ The supported data types in PyTorch are listed in the following table.
 .. list-table::
     :header-rows: 1
 
-    * - Features
+    * - Data Type
       - Description
+      - Since PyTorch
       - Supported
-    * - Float8 support
+      - Since ROCm
+    * - Float8
       - | Float8 offers two types of formats, E4M3 and E5M2,
         | and has the potential to further reduce memory usage
         | and accelerate training and inference for large models,
         | especially on hardware designed to support it.
+      - 
       - ❌
-    * - Float16 support
+      - 
+    * - Float16
       - | PyTorch provides a ``torch.float16`` data type, which can be
         | used for tensor creation, conversion, and storage. You can
         | create float16 tensors directly with 
         | ``torch.tensor(data, dtype=torch.float16)``, or convert an
         | existing tensor to float16 using ``.to(torch.float16)``.
+      - 
       - ✅
-    * - BFloat16 support
+      - 
+    * - BFloat16
       - | PyTorch provides a ``torch.bfloat16`` data type, which can be
         | used for tensor creation, conversion, and storage. You can
         | create bfloat16 tensors directly with
         | ``torch.tensor(data, dtype=torch.bfloat16)``, or convert an
         | existing tensor to bfloat16 using ``.to(torch.bfloat16)``.
+      - 1.2
       - ✅
+      - 2.6
     * - TF32
-      - 
+      - | TF32 natively supported usage in matrix multiplication.
+        | It controlled with torch.backends.cuda.matmul.allow_tf32
+      - 1.7
       - ❌
-    * - Complex support
+      - 
+    * - Complex
       - | PyTorch provides native support for complex numbers with
         | two data types: ``torch.complex64`` and ``torch.complex128``.
+      - 1.9
       - ✅
+      - 2.0
     * - AMP (Automatic Mixed Precision)
-      - 
+      - | PyTorch that automates the process of using both 16-bit
+        | (half-precision, float16) and 32-bit (single-precision, float32)
+        | floating-point types in model training and inference
+      - 1.9
       - ✅
+      - 2.5
 
 The supported data types in PyTorch are listed in the following table.
 
 .. list-table::
     :header-rows: 1
 
+    * - Features
+      - Description
+      - Since PyTorch
+      - Supported
+      - Since ROCm
     * - Random Number Generator
+      - Specialized RNG for generating random numbers directly on GPUs.
       - 
       - ✅
+      - 
     * - Communication collectives
+      - | A set of APIs that enable efficient communication between
+        | multiple GPUs, allowing for distributed computing and data
+        | parallelism.
       - 
       - ✅
+      - 
     * - Streams and events
       - 
+      - 
       - ✅
+      -       
     * - Graphs (beta)
       - 
-      - ✅
-    * - Memory management
       - 
       - ✅
+      - 
+    * - Memory management
+      - 
+      - 
+      - ✅
+      - 
     * - Running process lists
       - | Return a human-readable printout of the running processes
         | and their GPU memory use for a given device.
+      - 1.8
       - ✅
+      - 
     * - CUDACachingAllocator bypass
-      -
+      - | Allows to bypass PyTorch’s default CUDA memory allocator
+        | (the CUDACachingAllocator) and directly allocate memory
+        | on the GPU using native CUDA/HIP functions.
+      - 1.1.0
       - ✅
+      - 
     * - CUDA Fuser
-      -
-      - ❌
+      - Fusing multiple CUDA kernel operations into a single kernel
+      - 1.8
+      - ✅
+      - 3.5
     * - Enable stream priorities
       - 
+      - 
       - ✅
+      - 
     * - Tensor scatter functions
       - | Functions are specialized tensor operations used for
         | manipulating tensors by "scattering" data to specific
         | indices.
+      - 
       - ✅
+      - 
+    * - Capturable CUDAGeneratorImpl
+      -
+      - 
+      - ✅
+      - 
+    * - CuDNN-based LSTM:Support
+      -
+      -
+      - ✅
+      - 
+    * - Non-Deterministic Alert CUDA Operations
+      -
+      -
+      - ✅
+      - 
+    * - TorchScript
+      -
+      -
+      - ✅
+      - 
+    * - Custom Python Classes
+      -
+      -
+      - ✅
+      - 
     * - NVIDIA Tools Extension (NVTX)
       - 
+      -
       - ✅
+      - 
     * - Lazy loading NVRTC
       - 
+      -
       - ✅
+      - 
     * - Jiterator (beta)
       - Context-manager that selects a given stream.
+      -
       - ✅
+      - 
 
 .. list-table::
     :header-rows: 1
@@ -218,21 +295,9 @@ The supported data types in PyTorch are listed in the following table.
 
 Feature
 
-CUDA Graphs
 
 
 
-
-
-Capturable CUDAGeneratorImpl
-
-CuDNN-based LSTM:Support
-
-Non-Deterministic Alert CUDA Operations
-
-TorchScript
-
-Custom Python Classes
 
 Distributed
 
