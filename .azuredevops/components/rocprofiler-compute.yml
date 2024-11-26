@@ -41,6 +41,7 @@ parameters:
     - rocm-cmake
     - rocm-core
     - rocminfo
+    - rocm_smi_lib
     - ROCR-Runtime
     - rocprofiler
     - rocprofiler-register
@@ -90,6 +91,7 @@ jobs:
       gpuTarget: $(JOB_GPU_TARGET)
 
 - job: rocprofiler_compute_testing
+  timeoutInMinutes: 120
   dependsOn: rocprofiler_compute
   condition: and(succeeded(), eq(variables.ENABLE_GFX942_TESTS, 'true'), not(containsValue(split(variables.DISABLED_GFX942_TESTS, ','), variables['Build.DefinitionName'])))
   variables:
@@ -163,7 +165,7 @@ jobs:
     parameters:
       componentName: rocprofiler-compute
       testDir: $(Build.BinariesDirectory)/libexec/rocprofiler-compute
-      testExecutable: export ROCPROFCOMPUTE_ARCH_OVERRIDE="MI300X"; ctest
+      testExecutable: ROCPROFCOMPUTE_ARCH_OVERRIDE="MI300X" ROCM_PATH=$(Agent.BuildDirectory)/rocm ctest
   - task: Bash@3
     displayName: Remove ROCm binaries from PATH
     condition: always()
