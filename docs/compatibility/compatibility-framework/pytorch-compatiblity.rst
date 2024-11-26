@@ -640,9 +640,13 @@ Added support for the PyTorch kernel plugin
 
 We added awareness of `__HIP_NO_HALF_CONVERSIONS__` to support PyTorch users.
 
-ROCm 4.0
+ROCm 4.1
 --------------------------------------------------------------------------------
 
+
+
+ROCm 4.0
+--------------------------------------------------------------------------------
 
 ### Key Features of AMD Instinct™ MI100 
 
@@ -1398,11 +1402,6 @@ For more information about prerequisites and library functions, see
 
 https://github.com/GPUOpen-ProfessionalCompute-Libraries/MIVisionX/tree/master/docs
 
-ROCm 3.2
---------------------------------------------------------------------------------
-
-The AMD ROCm v3.2 release was not productized.
-
 ROCm 3.1
 --------------------------------------------------------------------------------
 
@@ -1418,19 +1417,9 @@ SLURM (Simple Linux Utility for Resource Management) is an open source, fault-to
 ROCm 3.0
 --------------------------------------------------------------------------------
 
-New features and enhancements in ROCm v3.0
-Support for CentOS RHEL v7.7
-Support is extended for CentOS/RHEL v7.7 in the ROCm v3.0 release. For more information about the CentOS/RHEL v7.7 release, see:
-
-CentOS/RHEL
-
-Initial distribution of AOMP 0.7-5 in ROCm v3.0
+- AOMP: Initial distribution of AOMP 0.7-5
 The code base for this release of AOMP is the Clang/LLVM 9.0 sources as of October 8th, 2019. The LLVM-project branch used to build this release is AOMP-191008. It is now locked. With this release, an artifact tarball of the entire source tree is created. This tree includes a Makefile in the root directory used to build AOMP from the release tarball. You can use Spack to build AOMP from this source tarball or build manually without Spack.
 
-For more information about AOMP 0.7-5, see: AOMP
-
-Fast Fourier Transform Updates
-The Fast Fourier Transform (FFT) is an efficient algorithm for computing the Discrete Fourier Transform. Fast Fourier transforms are used in signal processing, image processing, and many other areas. The following real FFT performance change is made in the ROCm v3.0 release:
 
 • Implement efficient real/complex 2D transforms for even lengths.
 
@@ -1442,20 +1431,16 @@ Other improvements:
 
 • C++ compatibility improvements.
 
-MemCopy Enhancement for rocProf
-In the v3.0 release, the rocProf tool is enhanced with an additional capability to dump asynchronous GPU memcopy information into a .csv file. You can use the '-hsa-trace' option to create the results_mcopy.csv file. Future enhancements will include column labels.
-
 ROCm 2.10.0
 --------------------------------------------------------------------------------
 
-rocBLAS - Support for Complex GEMM
-The rocBLAS library is a gpu-accelerated implementation of the standard Basic Linear Algebra
-Subroutines (BLAS). rocBLAS is designed to enable you to develop algorithms, including high
-performance computing, image analysis, and machine learning.
-In the AMD ROCm release v2.10, support is extended to the General Matrix Multiply (GEMM)
-routine for multiple small matrices processed simultaneously for rocBLAS in AMD Radeon
-Instinct MI50. Both single and double precision, CGEMM and ZGEMM, are now supported in
-rocBLAS.
+- rocBLAS:
+
+  - Support for Both single and double precision, CGEMM (Complex GEMM) and ZGEMM.
+
+  - Support is extended to the General Matrix Multiply (GEMM) routine for
+    multiple small matrices processed simultaneously for rocBLAS in AMD Radeon
+    Instinct MI50.  in
 
 ROCm 2.9.0
 --------------------------------------------------------------------------------
@@ -1463,11 +1448,11 @@ ROCm 2.9.0
 Initial release for Radeon Augmentation Library(RALI)
 The AMD Radeon Augmentation Library (RALI) is designed to efficiently decode and process images from a variety of storage formats and modify them through a processing graph programmable by the user. RALI currently provides C API.
 
-Quantization in MIGraphX v0.4
-MIGraphX 0.4 introduces support for fp16 and int8 quantization. For additional details, as well as other new MIGraphX features, see MIGraphX documentation.
+- MIGraphX: Introduces support for fp16 and int8 quantization. For additional
+  details, as well as other new MIGraphX features, see MIGraphX documentation.
 
-rocSparse csrgemm
-csrgemm enables the user to perform matrix-matrix multiplication with two sparse matrices in CSR format.
+- rocSparse: Add csrgemm, which enables the user to perform matrix-matrix
+  multiplication with two sparse matrices in CSR format.
 
 Singularity Support
 ROCm 2.9 adds support for Singularity container version 2.5.2.
@@ -1481,8 +1466,12 @@ Ubuntu 18.04.3 is now supported in ROCm 2.9.
 ROCm 2.8.0
 --------------------------------------------------------------------------------
 
-Support for NCCL2.4.8 API
-Implements ncclCommAbort() and ncclCommGetAsyncError() to match the NCCL 2.4.x API
+- RCCL: 
+
+  - Support for NCCL2.4.8 API
+  
+  - Implements ncclCommAbort() and ncclCommGetAsyncError() to match the NCCL
+    2.4.x API
 
 ROCm 2.7.2
 --------------------------------------------------------------------------------
@@ -1530,151 +1519,152 @@ Added ROCm-SMI CLI and LIB support for FW version, compute running processes, ut
 ROCm 2.6.0
 --------------------------------------------------------------------------------
 
-Thrust - Functional Support on Vega20
-ROCm2.6 contains the first official release of rocThrust and hipCUB. rocThrust is a port of thrust, a parallel algorithm library. hipCUB is a port of CUB, a reusable software component library. Thrust/CUB has been ported to the HIP/ROCm platform to use the rocPRIM library. The HIP ported library works on HIP/ROCm platforms.
+- Thrust: The first official release of rocThrust and hipCUB. rocThrust is a
+  port of thrust, a parallel algorithm library. hipCUB is a port of CUB, a
+  reusable software component library. Thrust/CUB has been ported to the
+  HIP/ROCm platform to use the rocPRIM library.
 
-Note: rocThrust and hipCUB library replaces https://github.com/ROCmSoftwarePlatform/thrust (hip-thrust), i.e. hip-thrust has been separated into two libraries, rocThrust and hipCUB. Existing hip-thrust users are encouraged to port their code to rocThrust and/or hipCUB. Hip-thrust will be removed from official distribution later this year.
+- MIGraphX: Add optimizer to read models frozen from Tensorflow framework.
+  Further details and an example usage at https://github.com/ROCmSoftwarePlatform/AMDMIGraphX/wiki/Getting-started:-using-the-new-features-of-MIGraphX-0.3
 
-MIGraphX v0.3
-MIGraphX optimizer adds support to read models frozen from Tensorflow framework. Further details and an example usage at https://github.com/ROCmSoftwarePlatform/AMDMIGraphX/wiki/Getting-started:-using-the-new-features-of-MIGraphX-0.3
+- MIOpen: 
+  
+  - New features including an immediate mode for selecting convolutions,
+    bfloat16 support, new layers, modes, and algorithms.
 
-MIOpen 2.0
-This release contains several new features including an immediate mode for selecting convolutions, bfloat16 support, new layers, modes, and algorithms.
-MIOpenDriver, a tool for benchmarking and developing kernels is now shipped with MIOpen. BFloat16 now supported in HIP requires an updated rocBLAS as a GEMM backend.
-Immediate mode API now provides the ability to quickly obtain a convolution kernel.
-MIOpen now contains HIP source kernels and implements the ImplicitGEMM kernels. This is a new feature and is currently disabled by default. Use the environmental variable "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM=1" to activation this feature. ImplicitGEMM requires an up to date HIP version of at least 1.5.9211.
-A new "loss" catagory of layers has been added, of which, CTC loss is the first. See the API reference for more details. 2.0 is the last release of active support for gfx803 architectures. In future releases, MIOpen will not actively debug and develop new features specifically for gfx803.
-System Find-Db in memory cache is disabled by default. Please see build instructions to enable this feature. Additional documentation can be found here: https://rocmsoftwareplatform.github.io/MIOpen/doc/html/
-Bloat16 software support in rocBLAS/Tensile
-Added mixed precision bfloat16/IEEE f32 to gemm_ex. The input and output matrices are bfloat16. All arithmetic is in IEEE f32.
+  - MIOpenDriver, a tool for benchmarking and developing kernels is now shipped
+    with MIOpen. BFloat16 now supported in HIP requires an updated rocBLAS as a
+    GEMM backend.
 
-AMD Infinity Fabric™ Link enablement
-The ability to connect four Radeon Instinct MI60 or Radeon Instinct MI50 boards in two hives or two Radeon Instinct MI60 or Radeon Instinct MI50 boards in four hives via AMD Infinity Fabric™ Link GPU interconnect technology has been added.
+  - Immediate mode API now provides the ability to quickly obtain a convolution
+    kernel.
 
-ROCm-smi features and bug fixes
-mGPU & Vendor check
-Fix clock printout if DPM is disabled
-Fix finding marketing info on CentOS
-Clarify some error messages
-ROCm-smi-lib enhancements
-Documentation updates
-Improvements to *name_get functions
-RCCL2 Enablement
-RCCL2 supports collectives intranode communication using PCIe, Infinity Fabric™, and pinned host memory, as well as internode communication using Ethernet (TCP/IP sockets) and Infiniband/RoCE (Infiniband Verbs). Note: For Infiniband/RoCE, RDMA is not currently supported.
+  - MIOpen now contains HIP source kernels and implements the ImplicitGEMM
+    kernels. This is a new feature and is currently disabled by default. Use the
+    environmental variable "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM=1" to activation
+    this feature. ImplicitGEMM requires an up to date HIP version of at least 1.5.9211.
 
-rocFFT enhancements
-Added: Debian package with FFT test, benchmark, and sample programs
-Improved: hipFFT interfaces
-Improved: rocFFT CPU reference code, plan generation code and logging code
+  - A new "loss" catagory of layers has been added, of which, CTC loss is the
+    first. See the API reference for more details. 2.0 is the last release of
+    active support for gfx803 architectures. In future releases, MIOpen will not
+    actively debug and develop new features specifically for gfx803.
+
+  - System Find-Db in memory cache is disabled by default. Please see build
+    instructions to enable this feature. Additional documentation can be found
+    here: https://rocmsoftwareplatform.github.io/MIOpen/doc/html/
+
+- RCCL2: Supports collectives intranode communication using PCIe, Infinity
+  Fabric™, and pinned host memory, as well as internode communication using
+  Ethernet (TCP/IP sockets) and Infiniband/RoCE (Infiniband Verbs). Note: For
+  Infiniband/RoCE, RDMA is not currently supported.
 
 ROCm 2.5.0
 --------------------------------------------------------------------------------
 
-UCX 1.6 support
-Support for UCX version 1.6 has been added.
+- Multi-GPU support is enabled in PyTorch using Dataparallel path for versions
+  of PyTorch built using the 06c8aa7a3bbd91cda2fd6255ec82aad21fa1c0d5 commit or
+  later.
 
-BFloat16 GEMM in rocBLAS/Tensile
-Software support for BFloat16 on Radeon Instinct MI50, MI60 has been added. This includes:
+- Add support for BFloat16 on Radeon Instinct MI50, MI60.
 
-Mixed precision GEMM with BFloat16 input and output matrices, and all arithmetic in IEEE32 bit
-Input matrix values are converted from BFloat16 to IEEE32 bit, all arithmetic and accumulation is IEEE32 bit. Output values are rounded from IEEE32 bit to BFloat16
-Accuracy should be correct to 0.5 ULP
-ROCm-SMI enhancements
-CLI support for querying the memory size, driver version, and firmware version has been added to ROCm-smi.
+- HIP API has been enhanced to allow independent kernels to run in parallel on
+  the same stream.
 
-[PyTorch] multi-GPU functional support (CPU aggregation/Data Parallel)
-Multi-GPU support is enabled in PyTorch using Dataparallel path for versions of PyTorch built using the 06c8aa7a3bbd91cda2fd6255ec82aad21fa1c0d5 commit or later.
+- UCX: Support for UCX version 1.6 has been added.
 
-rocSparse optimization on Radeon Instinct MI50 and MI60
-This release includes performance optimizations for csrsv routines in the rocSparse library.
+- rocBlas:
 
-[Thrust] Preview
-Preview release for early adopters. rocThrust is a port of thrust, a parallel algorithm library. Thrust has been ported to the HIP/ROCm platform to use the rocPRIM library. The HIP ported library works on HIP/ROCm platforms.
+  -  Add BFloat16 GEMM support in rocBLAS/Tensile.
 
-Note: This library will replace https://github.com/ROCmSoftwarePlatform/thrust in a future release. The package for rocThrust (this library) currently conflicts with version 2.5 package of thrust. They should not be installed together.
+  - Support mixed precision GEMM with BFloat16 input and output matrices, and all
+    arithmetic in IEEE32 bit.
 
-Support overlapping kernel execution in same HIP stream
-HIP API has been enhanced to allow independent kernels to run in parallel on the same stream.
+- rocSparse: Performance optimizations for csrsv routines.
 
-AMD Infinity Fabric™ Link enablement
-The ability to connect four Radeon Instinct MI60 or Radeon Instinct MI50 boards in one hive via AMD Infinity Fabric™ Link GPU interconnect technology has been added.
+- Thrust: Preview release for early adopters. rocThrust is a port of thrust, a
+  parallel algorithm library. Thrust has been ported to the HIP/ROCm platform to
+  use the rocPRIM library. The HIP ported library works on HIP/ROCm platforms.
 
-
+- Add support to connect four Radeon Instinct MI60 or Radeon Instinct MI50
+  boards in one hive via AMD Infinity Fabric™ Link GPU interconnect technology
+  has been added.
 
 ROCm 2.4.0
 --------------------------------------------------------------------------------
 
-TensorFlow 2.0 support
-ROCm 2.4 includes the enhanced compilation toolchain and a set of bug fixes to support TensorFlow 2.0 features natively
-
-AMD Infinity Fabric™ Link enablement
-ROCm 2.4 adds support to connect two Radeon Instinct MI60 or Radeon Instinct MI50 boards via AMD Infinity Fabric™ Link GPU interconnect technology.
+- Add support to connect two Radeon Instinct MI60 or Radeon Instinct MI50 boards
+  via AMD Infinity Fabric™ Link GPU interconnect technology.
 
 ROCm 2.3.0
 --------------------------------------------------------------------------------
 
-Mem usage per GPU
-Per GPU memory usage is added to rocm-smi. Display information regarding used/total bytes for VRAM, visible VRAM and GTT, via the --showmeminfo flag
+- MIVisionX: ONNX parser changes to adjust to new file formats.
 
-MIVisionX, v1.1 - ONNX
-ONNX parser changes to adjust to new file formats
+- MIGraphX:
 
-MIGraphX, v0.2
-MIGraphX 0.2 supports the following new features:
+  - Add support for additional ONNX operators and fixes that now enable a large
+    set of Imagenet models.
 
-New Python API
-Support for additional ONNX operators and fixes that now enable a large set of Imagenet models
-Support for RNN Operators
-Support for multi-stream Execution
-[Experimental] Support for Tensorflow frozen protobuf files
-See: Getting-started:-using-the-new-features-of-MIGraphX-0.2 for more details
+  - Add support for RNN Operators.
 
-MIOpen, v1.8 - 3d convolutions and int8
-This release contains full 3-D convolution support and int8 support for inference.
-Additionally, there are major updates in the performance database for major models including those found in Torchvision.
-See: MIOpen releases
+  - Add support for multi-stream execution.
 
-Caffe2 - mGPU support
-Multi-gpu support is enabled for Caffe2.
+- Caffe2: Enabled multi-gpu support.
 
-rocTracer library, ROCm tracing API for collecting runtimes API and asynchronous GPU activity traces
-HIP/HCC domains support is introduced in rocTracer library.
+- rocTracer: ROCm tracing API for collecting runtimes API and asynchronous GPU
+  activity traces HIP/HCC domains support is introduced in rocTracer library.
 
-BLAS - Int8 GEMM performance, Int8 functional and performance
-Introduces support and performance optimizations for Int8 GEMM, implements TRSV support, and includes improvements and optimizations with Tensile.
+- BLAS:
 
-Prioritized L1/L2/L3 BLAS (functional)
-Functional implementation of BLAS L1/L2/L3 functions
+  - Introduces support and performance optimizations for Int8 GEMM.
 
-BLAS - tensile optimization
-Improvements and optimizations with tensile
+  - Add TRSV support.
 
-MIOpen Int8 support
-Support for int8
+  - Improvements and optimizations with tensile.
+
+  - Functional implementation of BLAS L1/L2/L3 functions and prioritized them.
+
+- MIOpen: Add full 3-D convolution support and int8 support for inference.
+  Additionally, there are major updates in the performance database for major
+  models including those found in Torchvision.
 
 ROCm 2.2.0
 --------------------------------------------------------------------------------
 
-rocSparse Optimization on Vega20
-Cache usage optimizations for csrsv (sparse triangular solve), coomv (SpMV in COO format) and ellmv (SpMV in ELL format) are available.
-
-DGEMM and DTRSM Optimization
-Improved DGEMM performance for reduced matrix sizes (k=384, k=256)
-
-Caffe2
-Added support for multi-GPU training
+- rocSparse: Optimization on Vega20. Cache usage optimizations for csrsv (sparse
+  triangular solve), coomv (SpMV in COO format) and ellmv (SpMV in ELL format)
+  are available.
+- DGEMM and DTRSM Optimization: Improved DGEMM performance for reduced matrix
+  sizes k=384, k=256.
+- Caffe2: Added support for multi-GPU training.
 
 ROCm 2.1.0
 --------------------------------------------------------------------------------
 
-DGEMM Optimizations -
-Improved DGEMM performance for large square and reduced matrix sizes (k=384, k=256)
-
+- DGEMM: Improved DGEMM performance for large square and reduced matrix sizes
+  k=384, k=256.
 
 ROCm 2.0.0
 --------------------------------------------------------------------------------
 
-PyTorch/Caffe2 with Vega 7nm Support
-fp16 support is enabled
-Several bug fixes and performance enhancements
-Known Issue: breaking changes are introduced in ROCm 2.0 which are not addressed upstream yet. Meanwhile, please continue to use ROCm fork at https://github.com/ROCmSoftwarePlatform/pytorch
+- Vega 7nm support.
+- fp16 support is enabled.
+- Several bug fixes and performance enhancements.
+- Breaking changes are introduced in ROCm 2.0 which are not addressed upstream
+  yet. Meanwhile, please continue to use ROCm fork at https://github.com/ROCm/pytorch
+
+Introduces MIVisionX
+A comprehensive computer vision and machine intelligence libraries, utilities and applications bundled into a single toolkit.
+Improvements to ROCm Libraries
+rocSPARSE & hipSPARSE
+rocBLAS with improved DGEMM efficiency on Vega 7nm
+
+- MIOpen:
+  
+  - This release contains general bug fixes and an updated performance database.
+  
+  - Group convolutions backwards weights performance has been improved.
+  
+  - RNNs now support fp16.
+  
+  - Tensorflow multi-gpu and Tensorf
