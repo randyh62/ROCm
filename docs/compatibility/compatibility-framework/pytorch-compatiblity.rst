@@ -1250,24 +1250,58 @@ The following defects are fixed in this release:
 ROCm 3.7
 --------------------------------------------------------------------------------
 
-ROCm COMMUNICATIONS COLLECTIVE LIBRARY
-Compatibility with NVIDIA Communications Collective Library v2.7 API
+## AOMP ENHANCEMENTS
+
+AOMP is a scripted build of LLVM. It supports OpenMP target offload on AMD GPUs. Since AOMP is a Clang/LLVM compiler, it also supports GPU offloading with HIP, CUDA, and OpenCL.
+
+The following enhancements are made for AOMP in this release: 
+* OpenMP 5.0 is enabled by default. You can use -fopenmp-version=45 for OpenMP 4.5 compliance
+* Restructured to include the ROCm compiler
+* B=Bitcode search path using hip policy HIP_DEVICE_LIB_PATH and hip-devic-lib command line option to enable global_free for kmpc_impl_free
+
+Restructured hostrpc, including:
+* Replaced hostcall register functions with handlePayload(service, payload). Note, handlPayload has a simple switch to call the correct service handler function.
+* Removed the WITH_HSA macro
+* Moved the hostrpc stubs and host fallback functions into a single library and the include file. This enables the stubs openmp cpp source instead of hip and reorganizes the directory openmp/libomptarget/hostrpc.
+* Moved hostrpc_invoke.cl to DeviceRTLs/amdgcn.
+* Generalized the vargs processing in printf to work for any vargs function to execute on the host, including a vargs function that uses a function pointer.
+* Reorganized files, added global_allocate and global_free.
+* Fixed llvm TypeID enum to match the current upstream llvm TypeID.
+* Moved strlen_max function inside the declare target #ifdef _DEVICE_GPU in hostrpc.cpp to resolve linker failure seen in pfspecifier_str smoke test.
+* Fixed AOMP_GIT_CHECK_BRANCH in aomp_common_vars to not block builds in Red Hat if the repository is on a specific commit hash.
+* Simplified and reduced the size of openmp host runtime
+* Switched to default OpenMP 5.0
+
+For more information, see https://github.com/ROCm-Developer-Tools/aomp
+     
+
+## ROCm COMMUNICATIONS COLLECTIVE LIBRARY
+
+### Compatibility with NVIDIA Communications Collective Library v2\.7 API
+
 ROCm Communications Collective Library (RCCL) is now compatible with the NVIDIA Communications Collective Library (NCCL) v2.7 API.
 
 RCCL (pronounced "Rickle") is a stand-alone library of standard collective communication routines for GPUs, implementing all-reduce, all-gather, reduce, broadcast, reduce-scatter, gather, scatter, and all-to-all. There is also initial support for direct GPU-to-GPU send and receive operations. It has been optimized to achieve high bandwidth on platforms using PCIe, xGMI as well as networking using InfiniBand Verbs or TCP/IP sockets. RCCL supports an arbitrary number of GPUs installed in a single node or multiple nodes, and can be used in either single- or multi-process (e.g., MPI) applications.
 
 The collective operations are implemented using ring and tree algorithms and have been optimized for throughput and latency. For best performance, small operations can be either batched into larger operations or aggregated through the API.
 
-For more information about RCCL APIs and compatibility with NCCL v2.7, see https://rccl.readthedocs.io/en/develop/index.html
+For more information about RCCL APIs and compatibility with NCCL v2.7, see
+https://rccl.readthedocs.io/en/develop/index.html
 
-Singular Value Decomposition of Bi-diagonal Matrices
-Rocsolver_bdsqr now computes the Singular Value Decomposition (SVD) of bi-diagonal matrices. It is an auxiliary function for the SVD of general matrices (function rocsolver_gesvd).
+
+## Singular Value Decomposition of Bi\-diagonal Matrices
+
+Rocsolver_bdsqr now computes the Singular Value Decomposition (SVD) of bi-diagonal matrices. It is an auxiliary function for the SVD of general matrices (function rocsolver_gesvd). 
 
 BDSQR computes the singular value decomposition (SVD) of a n-by-n bidiagonal matrix B.
 
 The SVD of B has the following form:
 
-B = Ub * S * Vb' where • S is the n-by-n diagonal matrix of singular values of B • the columns of Ub are the left singular vectors of B • the columns of Vb are its right singular vectors
+B = Ub * S * Vb'
+where 
+•	S is the n-by-n diagonal matrix of singular values of B
+•	the columns of Ub are the left singular vectors of B
+•	the columns of Vb are its right singular vectors
 
 The computation of the singular vectors is optional; this function accepts input matrices U (of size nu-by-n) and V (of size n-by-nv) that are overwritten with U*Ub and Vb’*V. If nu = 0 no left vectors are computed; if nv = 0 no right vectors are computed.
 
@@ -1275,161 +1309,171 @@ Optionally, this function can also compute Ub’*C for a given n-by-nc input mat
 
 PARAMETERS
 
-• [in] handle: rocblas_handle.
+•	[in] handle: rocblas_handle.
 
-• [in] uplo: rocblas_fill.
+•	[in] uplo: rocblas_fill.
 
 Specifies whether B is upper or lower bidiagonal.
 
-• [in] n: rocblas_int. n >= 0.
+•	[in] n: rocblas_int. n >= 0.
 
 The number of rows and columns of matrix B.
 
-• [in] nv: rocblas_int. nv >= 0.
+•	[in] nv: rocblas_int. nv >= 0. 
 
 The number of columns of matrix V.
 
-• [in] nu: rocblas_int. nu >= 0.
+•	[in] nu: rocblas_int. nu >= 0. 
 
 The number of rows of matrix U.
 
-• [in] nc: rocblas_int. nu >= 0.
+•	[in] nc: rocblas_int. nu >= 0. 
 
 The number of columns of matrix C.
 
-• [inout] D: pointer to real type. Array on the GPU of dimension n.
+•	[inout] D: pointer to real type. Array on the GPU of dimension n.
 
 On entry, the diagonal elements of B. On exit, if info = 0, the singular values of B in decreasing order; if info > 0, the diagonal elements of a bidiagonal matrix orthogonally equivalent to B.
 
-• [inout] E: pointer to real type. Array on the GPU of dimension n-1.
+•	[inout] E: pointer to real type. Array on the GPU of dimension n-1.
 
 On entry, the off-diagonal elements of B. On exit, if info > 0, the off-diagonal elements of a bidiagonal matrix orthogonally equivalent to B (if info = 0 this matrix converges to zero).
 
-• [inout] V: pointer to type. Array on the GPU of dimension ldv*nv.
+•	[inout] V: pointer to type. Array on the GPU of dimension ldv*nv.
 
 On entry, the matrix V. On exit, it is overwritten with Vb’*V. (Not referenced if nv = 0).
 
-• [in] ldv: rocblas_int. ldv >= n if nv > 0, or ldv >=1 if nv = 0.
+•	[in] ldv: rocblas_int. ldv >= n if nv > 0, or ldv >=1 if nv = 0.
 
 Specifies the leading dimension of V.
 
-• [inout] U: pointer to type. Array on the GPU of dimension ldu*n.
+•	[inout] U: pointer to type. Array on the GPU of dimension ldu*n.
 
 On entry, the matrix U. On exit, it is overwritten with U*Ub. (Not referenced if nu = 0).
 
-• [in] ldu: rocblas_int. ldu >= nu.
+•	[in] ldu: rocblas_int. ldu >= nu.
 
 Specifies the leading dimension of U.
 
-• [inout] C: pointer to type. Array on the GPU of dimension ldc*nc.
+•	[inout] C: pointer to type. Array on the GPU of dimension ldc*nc.
 
 On entry, the matrix C. On exit, it is overwritten with Ub’*C. (Not referenced if nc = 0).
 
-• [in] ldc: rocblas_int. ldc >= n if nc > 0, or ldc >=1 if nc = 0.
+•	[in] ldc: rocblas_int. ldc >= n if nc > 0, or ldc >=1 if nc = 0.
 
 Specifies the leading dimension of C.
 
-• [out] info: pointer to a rocblas_int on the GPU.
+•	[out] info: pointer to a rocblas_int on the GPU.
 
 If info = 0, successful exit. If info = i > 0, i elements of E have not converged to zero.
 
-For more information, see https://rocsolver.readthedocs.io/en/latest/userguide_api.html#rocsolver-type-bdsqr
+For more information, see
+https://rocsolver.readthedocs.io/en/latest/userguide_api.html#rocsolver-type-bdsqr
 
-rocSPARSE_gemmi() Operations for Sparse Matrices
-This enhancement provides a dense matrix sparse matrix multiplication using the CSR storage format. rocsparse_gemmi multiplies the scalar αα with a dense m×km×k matrix AA and the sparse k×nk×n matrix BB defined in the CSR storage format, and adds the result to the dense m×nm×n matrix CC that is multiplied by the scalar ββ, such that C:=α⋅op(A)⋅op(B)+β⋅CC:=α⋅op(A)⋅op(B)+β⋅C with
+
+### rocSPARSE_gemmi\() Operations for Sparse Matrices
+
+This enhancement provides a dense matrix sparse matrix multiplication using the CSR storage format.
+rocsparse_gemmi multiplies the scalar αα with a dense m×km×k matrix AA and the sparse k×nk×n matrix BB defined in the CSR storage format, and adds the result to the dense m×nm×n matrix CC that is multiplied by the scalar ββ, such that
+C:=α⋅op(A)⋅op(B)+β⋅CC:=α⋅op(A)⋅op(B)+β⋅C
+with
 
 op(A)=⎧⎩⎨⎪⎪A,AT,AH,if trans_A == rocsparse_operation_noneif trans_A == rocsparse_operation_transposeif trans_A == rocsparse_operation_conjugate_transposeop(A)={A,if trans_A == rocsparse_operation_noneAT,if trans_A == rocsparse_operation_transposeAH,if trans_A == rocsparse_operation_conjugate_transpose
 
 and
 
-op(B)=⎧⎩⎨⎪⎪B,BT,BH,if trans_B == rocsparse_operation_noneif trans_B == rocsparse_operation_transposeif trans_B == rocsparse_operation_conjugate_transposeop(B)={B,if trans_B == rocsparse_operation_noneBT,if trans_B == rocsparse_operation_transposeBH,if trans_B == rocsparse_operation_conjugate_transpose Note: This function is non-blocking and executed asynchronously with the host. It may return before the actual computation has finished.
+op(B)=⎧⎩⎨⎪⎪B,BT,BH,if trans_B == rocsparse_operation_noneif trans_B == rocsparse_operation_transposeif trans_B == rocsparse_operation_conjugate_transposeop(B)={B,if trans_B == rocsparse_operation_noneBT,if trans_B == rocsparse_operation_transposeBH,if trans_B == rocsparse_operation_conjugate_transpose
+Note: This function is non-blocking and executed asynchronously with the host. It may return before the actual computation has finished.
 
-For more information and examples, see https://rocsparse.readthedocs.io/en/master/usermanual.html#rocsparse-gemmi  
-
+For more information and examples, see
+https://rocsparse.readthedocs.io/en/master/usermanual.html#rocsparse-gemmi
 
 ROCm 3.5
 --------------------------------------------------------------------------------
 
-ROCm Communications Collective Library
-The ROCm Communications Collective Library (RCCL) consists of the following enhancements:
+- ROCm Communications Collective Library: 
 
-Re-enable target 0x803
-Build time improvements for the HIP-Clang compiler
-NVIDIA Communications Collective Library Version Compatibility
-AMD RCCL is now compatible with NVIDIA Communications Collective Library (NCCL) v2.6.4 and provides the following features:
+  - Re-enable target 0x803
+  
+  - Build time improvements for the HIP-Clang compiler
 
-Network interface improvements with API v3
-Network topology detection
-Improved CPU type detection
-Infiniband adaptive routing support
-MIOpen Optional Kernel Package Installation
-MIOpen provides an optional pre-compiled kernel package to reduce startup latency.
+  - AMD RCCL is now compatible with NVIDIA Communications Collective Library
+    (NCCL) v2.6.4 and provides the following features: 
 
-NOTE: The installation of this package is optional. MIOpen will continue to function as expected even if you choose to not install the pre-compiled kernel package. This is because MIOpen compiles the kernels on the target machine once the kernel is run. However, the compilation step may significantly increase the startup time for different operations.
+    - Network interface improvements with API v3
+    
+    - Network topology detection 
 
-To install the kernel package for your GPU architecture, use the following command:
+    - Improved CPU type detection
+    
+    - Infiniband adaptive routing support
 
-apt-get install miopen-kernels--
+- MIOpen: Optional Kernel Package Installation
 
-is the GPU architecture. For example, gfx900, gfx906
-is the number of CUs available in the GPU. For example, 56 or 64
-New SMI Event Interface and Library
-An SMI event interface is added to the kernel and ROCm SMI lib for system administrators to get notified when specific events occur. On the kernel side, AMDKFD_IOC_SMI_EVENTS input/output control is enhanced to allow notifications propagation to user mode through the event channel.
+  - MIOpen provides an optional pre-compiled kernel package to reduce startup
+    latency. 
 
-On the ROCm SMI lib side, APIs are added to set an event mask and receive event notifications with a timeout option. Further, ROCm SMI API details can be found in the PDF generated by Doxygen from source or by referring to the rocm_smi.h header file (see the rsmi_event_notification_* functions).
+  - NOTE: The installation of this package is optional. MIOpen will continue to
+    function as expected even if you choose to not install the pre-compiled
+    kernel package. This is because MIOpen compiles the kernels on the target
+    machine once the kernel is run. However, the compilation step may
+    significantly increase the startup time for different operations.
 
-For the more details about ROCm SMI API, see
+  - To install the kernel package for your GPU architecture, use the following
+    command:
 
-https://github.com/RadeonOpenCompute/ROCm/blob/master/ROCm_SMI_Manual.pdf
+    *apt-get install miopen-kernels-<arch>-<num cu>*
+ 
+    * <arch> is the GPU architecture. For example, gfx900, gfx906
+    * <num cu> is the number of CUs available in the GPU. For example, 56 or 64 
 
-API for CPU Affinity
-A new API is introduced for aiding applications to select the appropriate memory node for a given accelerator(GPU).
+- API for CPU Affinity:
 
-The API for CPU affinity has the following signature:
+  - A new API is introduced for aiding applications to select the appropriate
+    memory node for a given accelerator(GPU). 
 
-*rsmi_status_t rsmi_topo_numa_affinity_get(uint32_t dv_ind, uint32_t numa_node);
+  - The API for CPU affinity has the following signature:
 
-This API takes as input, device index (dv_ind), and returns the NUMA node (CPU affinity), stored at the location pointed by numa_node pointer, associated with the device.
+    - *rsmi_status_t rsmi_topo_numa_affinity_get(uint32_t dv_ind, uint32_t *numa_node);*
 
-Non-Uniform Memory Access (NUMA) is a computer memory design used in multiprocessing, where the memory access time depends on the memory location relative to the processor.
+    - This API takes as input, device index (dv_ind), and returns the NUMA node
+      (CPU affinity), stored at the location pointed by numa_node pointer,
+      associated with the device.
 
-Radeon Performance Primitives Library
-The new Radeon Performance Primitives (RPP) library is a comprehensive high-performance computer vision library for AMD (CPU and GPU) with the HIP and OpenCL backend. The target operating system is Linux.
+    - Non-Uniform Memory Access (NUMA) is a computer memory design used in
+      multiprocessing, where the memory access time depends on the memory
+      location relative to the processor. 
 
-ScreenShot
-
-For more information about prerequisites and library functions, see
-
-https://github.com/GPUOpen-ProfessionalCompute-Libraries/MIVisionX/tree/master/docs
-
-ROCm 3.1
+ROCm 3.3
 --------------------------------------------------------------------------------
 
-Change in ROCm Installation Directory Structure
-A fresh installation of the ROCm toolkit installs the packages in the /opt/rocm- folder. Previously, ROCm toolkit packages were installed in the /opt/rocm folder.
+- Support for 3D Pooling Layers: ROCm is enhanced to include support for 3D
+  pooling layers. The implementation of 3D pooling layers now allows users to
+  run 3D convolutional networks, such as ResNext3D, on AMD Radeon Instinct GPUs. 
 
-Reliability, Accessibility, and Serviceability Support for Vega 7nm
-The Reliability, Accessibility, and Serviceability (RAS) support for Vega7nm is now available.
+- ONNX Enhancements
 
-SLURM Support for AMD GPU
-SLURM (Simple Linux Utility for Resource Management) is an open source, fault-tolerant, and highly scalable cluster management and job scheduling system for large and small Linux clusters.
+  - Open Neural Network eXchange (ONNX) is a widely-used neural net exchange
+    format. The AMD model compiler & optimizer support the pre-trained models in
+    ONNX, NNEF, & Caffe formats. Currently, ONNX versions 1.3 and below are
+    supported. 
+
+  - The AMD Neural Net Intermediate Representation (NNIR) is enhanced to handle
+    the rapidly changing ONNX versions and its layers. 
 
 ROCm 3.0
 --------------------------------------------------------------------------------
 
-- AOMP: Initial distribution of AOMP 0.7-5
-The code base for this release of AOMP is the Clang/LLVM 9.0 sources as of October 8th, 2019. The LLVM-project branch used to build this release is AOMP-191008. It is now locked. With this release, an artifact tarball of the entire source tree is created. This tree includes a Makefile in the root directory used to build AOMP from the release tarball. You can use Spack to build AOMP from this source tarball or build manually without Spack.
+- AOMP: 
 
+  - Initial distribution of AOMP 0.7-5
 
-• Implement efficient real/complex 2D transforms for even lengths.
-
-Other improvements:
-
-• More 2D test coverage sizes.
-
-• Fix buffer allocation error for large 1D transforms.
-
-• C++ compatibility improvements.
+  - The code base for this release of AOMP is the Clang/LLVM 9.0 sources as of
+    October 8th, 2019. The LLVM-project branch used to build this release is
+    AOMP-191008. It is now locked. With this release, an artifact tarball of the
+    entire source tree is created. This tree includes a Makefile in the root
+    directory used to build AOMP from the release tarball. You can use Spack to
+    build AOMP from this source tarball or build manually without Spack.
 
 ROCm 2.10.0
 --------------------------------------------------------------------------------
@@ -1445,23 +1489,11 @@ ROCm 2.10.0
 ROCm 2.9.0
 --------------------------------------------------------------------------------
 
-Initial release for Radeon Augmentation Library(RALI)
-The AMD Radeon Augmentation Library (RALI) is designed to efficiently decode and process images from a variety of storage formats and modify them through a processing graph programmable by the user. RALI currently provides C API.
-
 - MIGraphX: Introduces support for fp16 and int8 quantization. For additional
   details, as well as other new MIGraphX features, see MIGraphX documentation.
 
 - rocSparse: Add csrgemm, which enables the user to perform matrix-matrix
   multiplication with two sparse matrices in CSR format.
-
-Singularity Support
-ROCm 2.9 adds support for Singularity container version 2.5.2.
-
-Initial release of rocTX
-ROCm 2.9 introduces rocTX, which provides a C API for code markup for performance profiling. This initial release of rocTX supports annotation of code ranges and ASCII markers. For an example, see this code.
-
-Added support for Ubuntu 18.04.3
-Ubuntu 18.04.3 is now supported in ROCm 2.9.
 
 ROCm 2.8.0
 --------------------------------------------------------------------------------
@@ -1473,50 +1505,23 @@ ROCm 2.8.0
   - Implements ncclCommAbort() and ncclCommGetAsyncError() to match the NCCL
     2.4.x API
 
-ROCm 2.7.2
+ROCm 2.7
 --------------------------------------------------------------------------------
 
-This release is a hotfix for ROCm release 2.7.
+- rocRand:
 
-Issues fixed in ROCm 2.7.2
-A defect in upgrades from older ROCm releases has been fixed.
-rocprofiler --hiptrace and --hsatrace fails to load roctracer library
-In ROCm 2.7.2, rocprofiler --hiptrace and --hsatrace fails to load roctracer library defect has been fixed.
-To generate traces, please provide directory path also using the parameter: -d <$directoryPath> for example:
+  - Add support for new datatypes: uchar, ushort, half.
 
-/opt/rocm/bin/rocprof  --hsa-trace -d $PWD/traces /opt/rocm/hip/samples/0_Intro/bit_extract/bit_extract
-All traces and results will be saved under $PWD/traces path
+  - Improved performance on "Vega 7nm" chips, such as on the Radeon Instinct
+    MI50.
 
-Upgrading from ROCm 2.7 to 2.7.2
-To upgrade, please remove 2.7 completely as specified for ubuntu or for centos/rhel, and install 2.7.2 as per instructions install instructions
+  - mtgp32 uniform double performance changes due generation algorithm
+    standardization. Better quality random numbers now generated with 30%
+    decrease in performance.
 
-Other notes
-To use rocprofiler features, the following steps need to be completed before using rocprofiler:
+  - Up to 5% performance improvements for other algorithms.
 
-Step-1: Install roctracer
-Ubuntu 16.04 or Ubuntu 18.04:
-sudo apt install roctracer-dev
-CentOS/RHEL 7.6:
-sudo yum install roctracer-dev
-Step-2: Add /opt/rocm/roctracer/lib to LD_LIBRARY_PATH
-New features and enhancements in ROCm 2.7
-[rocFFT] Real FFT Functional
-Improved real/complex 1D even-length transforms of unit stride. Performance improvements of up to 4.5x are observed. Large problem sizes should see approximately 2x.
-
-rocRand Enhancements and Optimizations
-Added support for new datatypes: uchar, ushort, half.
-Improved performance on "Vega 7nm" chips, such as on the Radeon Instinct MI50
-mtgp32 uniform double performance changes due generation algorithm standardization. Better quality random numbers now generated with 30% decrease in performance
-Up to 5% performance improvements for other algorithms
-RAS
-Added support for RAS on Radeon Instinct MI50, including:
-
-Memory error detection
-Memory error detection counter
-ROCm-SMI enhancements
-Added ROCm-SMI CLI and LIB support for FW version, compute running processes, utilization rates, utilization counter, link error counter, and unique ID.
-
-ROCm 2.6.0
+ROCm 2.6
 --------------------------------------------------------------------------------
 
 - Thrust: The first official release of rocThrust and hipCUB. rocThrust is a
@@ -1611,9 +1616,6 @@ ROCm 2.3.0
 
 - Caffe2: Enabled multi-gpu support.
 
-- rocTracer: ROCm tracing API for collecting runtimes API and asynchronous GPU
-  activity traces HIP/HCC domains support is introduced in rocTracer library.
-
 - BLAS:
 
   - Introduces support and performance optimizations for Int8 GEMM.
@@ -1634,8 +1636,10 @@ ROCm 2.2.0
 - rocSparse: Optimization on Vega20. Cache usage optimizations for csrsv (sparse
   triangular solve), coomv (SpMV in COO format) and ellmv (SpMV in ELL format)
   are available.
+
 - DGEMM and DTRSM Optimization: Improved DGEMM performance for reduced matrix
   sizes k=384, k=256.
+
 - Caffe2: Added support for multi-GPU training.
 
 ROCm 2.1.0
@@ -1648,13 +1652,15 @@ ROCm 2.0.0
 --------------------------------------------------------------------------------
 
 - Vega 7nm support.
+
 - fp16 support is enabled.
+
 - Several bug fixes and performance enhancements.
+
 - Breaking changes are introduced in ROCm 2.0 which are not addressed upstream
   yet. Meanwhile, please continue to use ROCm fork at https://github.com/ROCm/pytorch
 
-Introduces MIVisionX
-A comprehensive computer vision and machine intelligence libraries, utilities and applications bundled into a single toolkit.
+
 Improvements to ROCm Libraries
 rocSPARSE & hipSPARSE
 rocBLAS with improved DGEMM efficiency on Vega 7nm
