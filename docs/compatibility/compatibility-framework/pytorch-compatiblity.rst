@@ -640,6 +640,591 @@ Added support for the PyTorch kernel plugin
 
 We added awareness of `__HIP_NO_HALF_CONVERSIONS__` to support PyTorch users.
 
+
+
+
+
+
+
+ROCm 4.5
+--------------------------------------------------------------------------------
+
+# AMD ROCm™ v4.5 Release Notes 
+
+This document describes the features, fixed issues, and information about downloading and installing the AMD ROCm™ software. It also covers known issues and deprecations in this release.
+
+- Supported Operating Environments and Documentation Updates
+  * [Supported Operating Environments](#Supported-Operating-Environments)
+  * [ROCm Installation Updates](#ROCm-Installation-Updates)
+  * [AMD ROCm Documentation Updates](#AMD-ROCm-Documentation-Updates)
+
+   
+- What\'s New in This Release
+  * [HIP Enhancements](#HIP-Enhancements)
+  * [Unified Memory Support in ROCm](#Unified-Memory-Support-in-ROCm)
+  * [System Management Interface](#System-Management-Interface) 
+  * [ROCm Math and Communication Libraries](#ROCm-Math-and-Communication-Libraries)
+  * [OpenMP Enhancements](#OpenMP-Enhancements)   
+
+- Known Issues in This Release
+  * [Known Issues in This Release](#Known-Issues-in-This-Release)
+
+- Deprecations in This Release
+  * [Deprecations](#Deprecations)
+
+- [Hardware and Software Support](#Hardware-and-Software-Support)
+
+- [Machine Learning and High Performance Computing Software Stack for AMD GPU](#Machine-Learning-and-High-Performance-Computing-Software-Stack-for-AMD-GPU)
+  * [ROCm Binary Package Structure](#ROCm-Binary-Package-Structure)
+  * [ROCm Platform Packages](#ROCm-Platform-Packages)
+  
+
+# What's New in This Release 
+
+## HIP Enhancements
+
+The ROCm v4.5 release consists of the following HIP enhancements:
+
+
+
+  - Support for HIP Graph 
+
+ROCm v4.5 extends support for HIP Graph. For details, refer to the HIP API Guide at
+
+https://github.com/RadeonOpenCompute/ROCm/blob/master/AMD-HIP-API-4.5.pdf
+
+### Enhanced *launch_bounds* Check Error Log Message 
+
+When a kernel is launched with HIP APIs, for example, hipModuleLaunchKernel(), HIP validates to check that input kernel
+dimension size is not larger than specified launch_bounds.
+
+If exceeded, HIP returns launch failure if AMD_LOG_LEVEL is set with the proper value. Users can find more information in the error log message,
+including launch parameters of kernel dim size, launch bounds, and the name of the faulting kernel. It is helpful to figure out the faulting
+kernel. Besides, the kernel dim size and launch bounds values will also assist in debugging such failures.
+
+For more details, refer to the HIP Programming Guide at
+
+https://github.com/RadeonOpenCompute/ROCm/blob/master/AMD_HIP_Programming_Guide.pdf
+
+
+- HIP Runtime Compilation
+
+HIP now supports runtime compilation (hipRTC), the usage of which will provide the possibility of optimizations and performance improvement
+compared with other APIs via regular offline static compilation. 
+
+hipRTC APIs accept HIP source files in character string format as input parameters and create handles of programs by compiling the HIP source
+files without spawning separate processes.
+
+For more details on hipRTC APIs, refer to the HIP API Guide at
+
+https://github.com/RadeonOpenCompute/ROCm/blob/master/AMD-HIP-API-4.5.pdf
+
+
+### Planned HIP Enhancements and Fixes
+
+#### Changes to hiprtc implementation to match nvrtc behavior
+
+In this release, there are changes to the *hiprtc* implementation to
+match the *nvrtc* behavior.
+
+**Impact:** Applications can no longer explicitly include HIP runtime header files. Minor code changes are required to remove the HIP runtime
+header files.
+
+#### HIP device attribute enumeration
+
+In a future release, there will be a breaking change in the HIP device attribute enumeration. Enum values are being rearranged to accommodate
+future enhancements and additions.
+
+**Impact:** This will require users to rebuild their applications. No code changes are required.
+
+#### Changes to behavior of hipGetLastError() and hipPeekAtLastError() to match CUDA behavior available
+
+In a later release, changes to behavior of hipGetLastError() and hipPeekAtLastError() to match CUDA behavior will be available.
+
+**Impact:** Applications relying on the previous behavior will be impacted and may require some code changes.
+
+## Unified Memory Support in ROCm
+
+Unified memory allows applications to map and migrate data between CPU and GPU seamlessly without explicitly copying it between different
+allocations. This enables a more complete implementation of *hipMallocManaged*, *hipMemAdvise*, *hipMemPrefetchAsync* and related
+APIs. Without unified memory, these APIs only support system memory. With unified memory, the driver can automatically migrate such memory to
+GPU memory for faster access.
+
+### Supported Operating Systems and Versions
+
+This feature is only supported on recent Linux kernels. Currently, it works on Ubuntu versions with 5.6 or newer kernels and the DKMS driver
+from ROCm. Current releases of RHEL and SLES do not support this feature yet. Future releases of those distributions will add support for this.
+The unified memory feature is also supported in the KFD driver included with upstream kernels starting from Linux 5.14.
+
+Unified memory only works on GFXv9 and later GPUs, including Vega10 and MI100. Fiji, Polaris and older GPUs are not supported. To check whether
+unified memory is enabled, look in the kernel log for this message:
+
+```  
+     \$ dmesg \| grep \"HMM registered"
+```  
+
+If unified memory is enabled, there should be a message like "HMM registered xyzMB device memory". If unified memory is not supported on
+your GPU or kernel version, this message is missing.
+
+### Unified Memory Support and XNACK
+
+Unified memory support comes in two flavours, XNACK-enabled and XNACK-disabled. XNACK refers to the ability of the GPU to handle page
+faults gracefully and retry a memory access. In XNACK-enabled mode, the GPU can handle retry after page-faults, which enables mapping and
+migrating data on demand, as well as memory overcommitment. In XNACK-disabled mode, all memory must be resident and mapped in the GPU
+page tables when the GPU is executing application code. Any migrations involve temporary preemption of the GPU queues by the driver. Both page
+fault handling and preemptions, happen automatically and are transparent to the applications.
+
+XNACK-enabled mode only has experimental support. XNACK-enabled mode requires compiling shader code differently. By default, the ROCm
+compiler builds code that works in both modes. Code can be optimized for one specific mode with compiler options:
+
+OpenCL:
+
+```  
+     clang \... -mcpu=gfx908:xnack+:sramecc- \... // xnack on, sramecc off\
+     clang \... -mcpu=gfx908:xnack-:sramecc+ \... // xnack off, sramecc on
+```  
+
+HIP:
+```  
+     clang \... \--cuda-gpu-arch=gfx906:xnack+ \... // xnack on\
+     clang \... \--cuda-gpu-arch=gfx906:xnack- \... // xnack off
+```  
+Not all the math libraries included in ROCm support XNACK-enabled mode on current hardware. Applications will fail to run if their shaders are
+compiled in the incorrect mode.
+
+On current hardware, the XNACK mode can be chosen at boot-time by a module parameter amdgpu.noretry. The default is XNACK-disabled
+(amdgpu.noretry=1).
+
+
+
+## ROCm Math and Communication Libraries
+
+In this release, ROCm Math and Communication Libraries consists of the
+following enhancements and fixes:
+
+| Library   | Changes                                                  |
+| ---       | ---                                                      |
+| rocBLAS | **Optimizations** <ul><li>Improved performance of non-batched and batched syr for all sizes and data types</li><li>Improved performance of non-batched and batched hemv for all sizes and data types</li><li>Improved performance of non-batched and batched symv for all sizes and data types</li><li>Improved memory utilization in rocblas-bench, rocblas-test gemm functions, increasing possible runtime sizes.</li></ul>**Changes** <ul><li>Update from C++14 to C++17.</li>  <li>Packaging split into a runtime package (called rocblas) and a development package (called rocblas-dev for .deb packages, and rocblas-devel for .rpm packages). The development package depends on runtime. The runtime package suggests the development package for all supported OSes except CentOS 7 to aid in the transition. The 'suggest' feature in packaging is introduced as a deprecated feature and will be removed in a future ROCm release.</li></ul> **Fixed**<ul><li>For function geam avoid overflow in offset calculation.</li>  <li> For function syr avoid overflow in offset calculation.</li> <li>For function gemv (Transpose-case) avoid overflow in offset calculation.</li> <li>For functions ssyrk and dsyrk, allow conjugate-transpose case to match legacy BLAS. Behavior is the same as the transpose case.</li></ul> |
+| hipBLAS| **Added**<ul><li>More support for hipblas-bench</li></ul>**Fixed**<ul><li>Avoid large offset overflow for gemv and hemv in hipblas-test</li></ul>**Changed**<ul><li>Packaging split into a runtime package called hipblas and a development package called hipblas-devel. The development package depends on runtime. The runtime package suggests the development package for all supported OSes except CentOS 7 to aid in the transition. The 'suggests' feature in packaging is a transitional feature and will be removed in a future rocm release.</li></ul> |
+| rocFFT | **Optimizations**<ul><li>Optimized SBCC kernels of length 52, 60, 72, 80, 84, 96, 104, 108, 112, 160, 168, 208, 216, 224, 240 with new kernel generator.</li></ul>**Added**<ul><li>Split 2D device code into separate libraries.</li> </ul>**Changed**<ul><li>Packaging split into a runtime package called rocfft and a development package called rocfft-devel. The development package depends on runtime. The runtime package suggests the development package for all supported OSes except CentOS 7 to aid in the transition. The suggests feature in packaging is introduced as a deprecated feature and will be removed in a future rocm release.</li></ul>**Fixed**<ul><li>Fixed a few validation failures of even-length R2C inplace. 2D, 3D cubics sizes such as 100^2 (or ^3), 200^2 (or ^3), 256^2 (or ^3)...etc. We don't combine the three kernels (stockham-r2c-transpose). We only combine two kernels (r2c-transpose) instead.</li></ul> |
+| hipFFT | **Changed**  <ul><li>Packaging split into a runtime package called hipfft and a development package called hipfft-devel. The development package depends on runtime. The runtime package suggests the development package for all supported OSes except CentOS 7 to aid in the transition. The 'suggests' feature in packaging is a transitional feature and will be removed in a future rocm release.</li></ul> |
+| rocSPARSE | **Added** <ul><li>Triangular solve for multiple right-hand sides using BSR format</li> <li>SpMV for BSRX format</li> <li>SpMM in CSR format enhanced to work with transposed A</li> <li>Matrix coloring for CSR matrices </li><li>Added batched tridiagonal solve (gtsv_strided_batch)</li></ul> **Improved** <ul><li>Fixed a bug with gemvi on Navi21 </li><li>Optimization for pivot based gtsv</li></ul> |
+| hipSPARSE | **Added** <ul><li>Triangular solve for multiple right-hand sides using BSR format</li> <li>SpMV for BSRX format</li> <li>SpMM in CSR format enhanced to work with transposed A</li> <li>Matrix coloring for CSR matrices </li>  <li>Added batched tridiagonal solve (gtsv_strided_batch)</li></ul> **Improved** <ul><li>Fixed a bug with gemvi on Navi21</li> <li>Optimization for pivot based gtsv</li></ul> |
+| rocALUTION | **Changed** <ul><li>Packaging split into a runtime package called rocalution and a development package called rocalution-devel. The development package depends on runtime. The runtime package suggests the development package for all supported OSes except CentOS 7 to aid in the transition. The 'suggests' feature in packaging is a transitional feature and will be removed in a future rocm release.</li></ul> **Improved** <ul><li>(A)MG solving phase optimization</li></ul> |
+| rocTHRUST | **Changed**  <ul><li>Packaging changed to a development package (called rocthrust-dev for .deb packages, and rocthrust-devel for .rpm packages). As rocThrust is a header-only library, there is no runtime package. To aid in the transition, the development package sets the "provides" field to provide the package rocthrust, so that existing packages depending on rocthrust can continue to work. The 'provides' feature is a transitional feature and will be removed in a future ROCm release.</li></ul> |
+| rocSOLVER | **Added** <ul><li>RQ factorization routines:</li><li>GERQ2, GERQF (with batched and strided_batchedversions)</li>  <li>Linear solvers for general square systems:</li> <li>GESV (with batched and strided_batched versions)</li><li>Linear solvers for symmetric/hermitian positive definite systems:</li> <li>POTRS (with batched and strided_batched versions)</li> <li>POSV (with batched and strided_batched versions) </li> <li>Inverse of symmetric/hermitian positive definite matrices:</li><li>POTRI (with batched and strided_batched versions)</li> <li>General matrix inversion without pivoting:  </li>  <li>GETRI_NPVT (with batched and strided_batched versions)</li> <li>GETRI_NPVT_OUTOFPLACE (with batched and  strided_batched versions)</li></ul>**Optimized**<ul><li>Improved performance of LU factorization (especially for large matrix sizes)</li> <li>Changed</li>  <li>Raised reference LAPACK version used for rocSOLVER test and benchmark clients to v3.9.1</li>  <li>Minor CMake improvements for users building from source without install.sh:</li> <li>Removed fmt::fmt from rocsolver\'s public usage requirements</li> <li>Enabled small-size optimizations by default </li>  <li>Split packaging into a runtime package ('rocsolver') and a development package ('rocsolver-devel'). The development package depends on the runtime package. To aid in the transition, the runtime package suggests the development package (except on CentOS 7). This use of the 'suggests feature' is transitional and will be removed in a future ROCm release.</li></ul> **Fixed** <ul><li>Use of the GCC / Clang __attribute__((deprecated(...))) extension is now guarded by compiler detection macros. |
+| hipSOLVER | The following functions were added in this release:<ul><li>gesv</li><ul><li>hipsolverSSgesv_bufferSize, hipsolverDDgesv_bufferSize, hipsolverCCgesv_bufferSize, hipsolverZZgesv_bufferSize</li><li>hipsolverSSgesv, hipsolverDDgesv, hipsolverCCgesv, hipsolverZZgesv</li></ul><li>potrs</li><ul><li>hipsolverSpotrs_bufferSize, hipsolverDpotrs_bufferSize, hipsolverCpotrs_bufferSize, hipsolverZpotrs_bufferSize</li><li>hipsolverSpotrs, hipsolverDpotrs, hipsolverCpotrs, hipsolverZpotrs</li></ul><li>potrsBatched</li><ul><li>hipsolverSpotrsBatched_bufferSize, hipsolverDpotrsBatched_bufferSize, hipsolverCpotrsBatched_bufferSize, hipsolverZpotrsBatched_bufferSize</li><li>hipsolverSpotrsBatched, hipsolverDpotrsBatched, hipsolverCpotrsBatched, hipsolverZpotrsBatched</li></ul><li>potri</li><ul><li>hipsolverSpotri_bufferSize, hipsolverDpotri_bufferSize, hipsolverCpotri_bufferSize, hipsolverZpotri_bufferSize</li><li>hipsolverSpotri, hipsolverDpotri, hipsolverCpotri, hipsolverZpotri</li></ul></ul></li></ul> |
+| RCCL | **Added** <ul><li>Compatibility with NCCL 2.9.9 </li></ul>**Changed**  <ul><li>Packaging split into a runtime package called rccl and a development package called rccl-devel. The development package depends on runtime. The runtime package suggests the development package for all supported OSes except CentOS 7 to aid in the transition. The 'suggests' feature in packaging is a tranistional feature and will be removed in a future rocm release.</li></ul> |
+| hipCUB | **Changed**  <ul><li>Packaging changed to a development package (called hipcub-dev for .deb packages, and hipcub-devel for .rpm packages). As hipCUB is a header-only library, there is no runtime package. To aid in the transition, the development package sets the "provides" field to provide the package hipcub, so that existing packages depending on hipcub can continue to work. This provides feature is introduced as a deprecated feature and will be removed in a future ROCm release.</li></ul> |
+| rocPRIM| **Added** <ul><li>bfloat16 support added.</li></ul> **Changed**  <ul><li>Packaging split into a runtime package called rocprim and a development package called rocprim-devel. The development package depends on runtime. The runtime package suggests the development package for all supported OSes except CentOS 7 to aid in the transition. The suggests feature in packaging is introduced as a deprecated feature and will be removed in a future rocm release.</li> <li>As rocPRIM is a header-only library, the runtime package is an empty placeholder used to aid in the transition. This package is also a deprecated feature and will be removed in a future rocm release.</li></ul> **Deprecated** <ul><li>The warp_size() function is now deprecated; please switch to host_warp_size() and device_warp_size() for host and device references respectively.</li></ul> |
+| rocRAND| **Changed**  <ul><li>Packaging split into a runtime package called rocrand and a development package called rocrand-devel. The development package depends on runtime. The runtime package suggests the development package for all supported OSes except CentOS 7 to aid in the transition. The suggests feature in packaging is introduced as a deprecated feature and will be removed in a future rocm release.</li></ul> **Fixed** <ul><li>Fix for mrg_uniform_distribution_double generating incorrect range of values</li> <li>Fix for order of state calls for log_normal, normal, and uniform</li></ul> **Known issues**  <ul><li>kernel_xorwow test is failing for certain GPU architectures.</li></ul> |
+
+For more information about ROCm Libraries, refer to the documentation at
+
+<https://rocmdocs.amd.com/en/latest/ROCm_Libraries/ROCm_Libraries.html>
+
+# Known Issues in This Release 
+
+The following are the known issues in this release.
+
+## clinfo and rocminfo Do Not Display Marketing Name
+
+clinfo and rocminfo display a blank field for Marketing Name. 
+
+This is due to a missing package that is not yet available from ROCm. This package will be distributed in future ROCm releases.
+
+## Compiler Support for Function Pointers and Virtual Functions
+
+A known issue in the compiler support for function pointers and virtual functions on the GPU may cause undefined behavior due to register
+corruption. 
+
+A temporary workaround is to compile the affected application with this option:
+
+```
+     -mllvm -amdgpu-fixed-function-abi=1
+     
+ ```
+
+**Note:** This is an internal compiler flag and may be removed without notice once the issue is addressed in a future release.
+
+
+## Debugger Process Exit May Cause ROCgdb Internal Error
+
+If the debugger process exits during debugging, ROCgdb may report internal errors. This issue occurs as it attempts to access the AMD GPU
+state for the exited process. To recover, users must restart ROCgdb.
+ 
+As a workaround, users can set breakpoints to prevent the debugged process from exiting. For example, users can set breakpoints at the last
+statement of the main function and in the abort() and exit() functions. This temporary solution allows the application to be re-run without
+restarting ROCgdb.
+
+This issue is currently under investigation and will be fixed in a future release.
+
+For more information, refer to the ROCgdb User Guide at,
+
+https://github.com/RadeonOpenCompute/ROCm/blob/master/ROCDebugger_User_Guide.pdf
+
+## Cache Issues with ROCProfiler
+
+When the same kernel is launched back-to-back multiple times on a GPU, a cache flush is executed each time the kernel finishes when profiler data is collected. The cache flush is inserted by ROCprofiler for each kernel. This prevents kernel from being cached, instead it is being read each time it is launched. As a result the cache hit rate from rocprofiler is reported as 0% or very low.
+
+This issue is under investigation and will be fixed in a future release. 
+
+## Stability Issue on LAMMPS-KOKKOS Applications
+
+On mGPU machines, lammps-kokkos applications experience a stability issue (AMD Instinct MI100™). 
+
+As a workaround, perform a Translation LookAside Buffer (TLB) flush. 
+
+The issue is under active investigation and will be resolved in a future release.
+
+
+ROCm 4.3
+--------------------------------------------------------------------------------
+
+- HIP:
+
+  - Support for Managed Memory Allocation: HIP now supports and automatically 
+    manages Heterogeneous Memory Management (HMM) allocation. The HIP
+    application performs a capability check before making the managed memory API
+    call hipMallocManaged.
+
+**Note**: The _managed_ keyword is unsupported currently. 
+
+```
+	int managed_memory = 0;
+	HIPCHECK(hipDeviceGetAttribute(&managed_memory,
+ 	 hipDeviceAttributeManagedMemory,p_gpuDevice));
+	if (!managed_memory ) {
+  	printf ("info: managed memory access not supported on the device %d\n Skipped\n", p_gpuDevice);
+	}
+	else {
+ 	 HIPCHECK(hipSetDevice(p_gpuDevice));
+  	HIPCHECK(hipMallocManaged(&Hmm, N * sizeof(T)));
+	. . .
+	}
+```
+
+### Kernel Enqueue Serialization
+
+Developers can control kernel command serialization from the host using the following environment variable,
+AMD_SERIALIZE_KERNEL
+	
+* AMD_SERIALIZE_KERNEL = 1, Wait for completion before enqueue,
+
+* AMD_SERIALIZE_KERNEL = 2, Wait for completion after enqueue,
+
+* AMD_SERIALIZE_KERNEL = 3, Both.
+
+This environment variable setting enables HIP runtime to wait for GPU idle before/after any GPU command.
+
+
+### NUMA-aware Host Memory Allocation
+	
+The Non-Uniform Memory Architecture (NUMA) policy determines how memory is allocated and selects a CPU closest to each GPU. 
+	
+NUMA also measures the distance between the GPU and CPU devices. By default, each GPU selects a Numa CPU node that has the least NUMA distance between them; the host memory is automatically allocated closest to the memory pool of the NUMA node of the current GPU device. 
+	
+Note, using the *hipSetDevice* API with a different GPU provides access to the host allocation. However, it may have a longer NUMA distance.
+
+
+### New Atomic System Scope Atomic Operations
+	
+HIP now provides new APIs with _system as a suffix to support system scope atomic operations. For example,  atomicAnd atomic is dedicated to the GPU device, and atomicAnd_system allows developers to extend the atomic operation to system scope from the GPU device to other CPUs and GPU devices in the system.
+	
+For more information, refer to the HIP Programming Guide at,
+	
+https://github.com/RadeonOpenCompute/ROCm/blob/master/AMD_HIP_Programming_Guide_v4.3.pdf
+
+### Indirect Function Call and C++ Virtual Functions 
+	
+While the new release of the ROCm compiler supports indirect function calls and C++ virtual functions on a device, there are some known limitations and issues. 
+	
+**Limitations**
+	
+* An address to a function is device specific.  Note, a function address taken on the host can not be used on a device, and a function address taken on a device can not be used on the host.  On a system with multiple devices, an address taken on one device can not be used on a different device.
+	
+* C++ virtual functions only work on the device where the object was constructed.
+	
+* Indirect call to a device function with function scope shared memory allocation is not supported. For example, LDS.
+	
+* Indirect call to a device function defined in a source file different than the calling function/kernel is only supported when compiling the entire program with -fgpu-rdc.
+	
+**Known Issues in This Release**
+	
+* Programs containing kernels with different launch bounds may crash when making an indirect function call.  This issue is due to a compiler issue miscalculating the register budget for the callee function.
+	
+* Programs may not work correctly when making an indirect call to a function that uses more resources. For example, scratch memory, shared memory, registers made available by the caller.
+	
+* Compiling a program with objects with pure or deleted virtual functions on the device will result in a linker error.  This issue is due to the missing implementation of some C++ runtime functions on the device.
+	
+* Constructing an object with virtual functions in private or shared memory may crash the program due to a compiler issue when generating code for the constructor.  
+
+
+	
+### Add 64-bit Energy Accumulator In-band
+	
+This feature provides an average value of energy consumed over time in a free-flowing RAPL counter, a 64-bit Energy Accumulator.
+	
+Sample output
+	
+```
+	$ rocm_smi.py --showenergycounter
+	=============================== Consumed Energy ================================
+	GPU[0] : Energy counter: 2424868
+	GPU[0] : Accumulated Energy (uJ): 0.0	
+
+```	
+	
+### Support for Continuous Clocks Values
+	
+ROCm SMI will support continuous clock values instead of the previous discrete levels. Moving forward the updated sysfs file will consist of only MIN and MAX values and the user can set the clock value in the given range. 
+	
+Sample output:
+
+```
+	$ rocm_smi.py --setsrange 551 1270 
+	Do you accept these terms? [y/N] y                                                                                    
+	============================= Set Valid sclk Range=======
+	GPU[0]          : Successfully set sclk from 551(MHz) to 1270(MHz)                                                     
+	GPU[1]          : Successfully set sclk from 551(MHz) to 1270(MHz)                                                     
+	=========================================================================
+                       
+	$ rocm_smi.py --showsclkrange                                                                                                                                                                    
+	============================ Show Valid sclk Range======                     
+
+	GPU[0]          : Valid sclk range: 551Mhz - 1270Mhz                                                                  
+	GPU[1]          : Valid sclk range: 551Mhz - 1270Mhz             
+```
+	
+### Memory Utilization Counters
+
+This feature provides a counter display memory utilization information as shown below.
+
+Sample output
+	
+```
+       $ rocm_smi.py --showmemuse
+	========================== Current Memory Use ==============================
+
+	GPU[0] : GPU memory use (%): 0
+	GPU[0] : Memory Activity: 0
+```	
+
+### Performance Determinism
+
+ROCm SMI supports performance determinism as a unique mode of operation. Performance variations are minimal as this enhancement allows users to control the entry and exit to set a soft maximum (ceiling) for the GFX clock.
+	
+Sample output
+
+```
+	$ rocm_smi.py --setperfdeterminism 650
+	cat pp_od_clk_voltage
+	GFXCLK:                
+	0: 500Mhz
+	1: 650Mhz *
+	2: 1200Mhz
+	$ rocm_smi.py --resetperfdeterminism 	
+```	
+	
+**Note**: The idle clock will not take up higher clock values if no workload is running. After enabling determinism, users can run a GFX workload to set performance determinism to the desired clock value in the valid range.
+
+	* GFX clock could either be less than or equal to the max value set in this mode. GFX clock will be at the max clock set in this mode only when required by the running 	workload.
+	
+	* VDDGFX will be higher by an offset (75mv or so based on PPTable) in the determinism mode.
+	
+### HBM Temperature Metric Per Stack
+
+This feature will enable ROCm SMI to report all HBM temperature values as shown below.
+
+Sample output
+
+```	
+   	$ rocm_smi.py –showtemp
+	================================= Temperature =================================
+	GPU[0] : Temperature (Sensor edge) (C): 29.0
+	GPU[0] : Temperature (Sensor junction) (C): 36.0
+	GPU[0] : Temperature (Sensor memory) (C): 45.0
+	GPU[0] : Temperature (Sensor HBM 0) (C): 43.0
+	GPU[0] : Temperature (Sensor HBM 1) (C): 42.0
+	GPU[0] : Temperature (Sensor HBM 2) (C): 44.0
+	GPU[0] : Temperature (Sensor HBM 3) (C): 45.0
+```	
+
+	
+## ROCm Math and Communication Libraries 
+
+### rocBLAS
+
+**Optimizations**
+
+* Improved performance of non-batched and batched rocblas_Xgemv for gfx908 when m <= 15000 and n <= 15000
+	
+* Improved performance of non-batched and batched rocblas_sgemv and rocblas_dgemv for gfx906 when m <= 6000 and n <= 6000
+	
+* Improved the overall performance of non-batched and batched rocblas_cgemv for gfx906
+	
+* Improved the overall performance of rocblas_Xtrsv
+
+For more information, refer to 
+
+https://rocblas.readthedocs.io/en/master/
+
+
+### rocRAND
+
+**Enhancements**
+	
+* gfx90a support added
+	
+* gfx1030 support added
+
+* gfx803 supported re-enabled
+
+**Fixed**
+	
+* Memory leaks in Poisson tests has been fixed.
+	
+* Memory leaks when generator has been created but setting seed/offset/dimensions display an exception has been fixed.
+
+For more information, refer to
+
+https://rocrand.readthedocs.io/en/latest/
+
+
+### rocSOLVER	
+
+**Enhancements**
+	
+Linear solvers for general non-square systems:
+	
+* GELS now supports underdetermined and transposed cases
+	
+* Inverse of triangular matrices
+	
+* TRTRI (with batched and strided_batched versions)
+	
+* Out-of-place general matrix inversion
+	
+* GETRI_OUTOFPLACE (with batched and strided_batched versions)
+	
+* Argument names for the benchmark client now match argument names from the public API
+	
+**Fixed Issues**
+	
+* Known issues with Thin-SVD. The problem was identified in the test specification, not in the thin-SVD implementation or the rocBLAS gemm_batched routines.
+
+* Benchmark client longer crashes as a result of leading dimension or stride arguments not being provided on the command line.
+
+**Optimizations**
+	
+* Improved general performance of matrix inversion (GETRI)
+
+For more information, refer to
+
+https://rocsolver.readthedocs.io/en/latest/
+
+
+### rocSPARSE	
+	
+**Enhancements**
+	
+* (batched) tridiagonal solver with and without pivoting
+	
+* dense matrix sparse vector multiplication (gemvi)
+	
+* support for gfx90a
+	
+* sampled dense-dense matrix multiplication (sddmm)
+	
+**Improvements**
+	
+* client matrix download mechanism
+	
+* boost dependency in clients removed
+
+
+For more information, refer to
+
+https://rocsparse.readthedocs.io/en/latest/usermanual.html#rocsparse-gebsrmv
+
+
+### hipBLAS
+
+**Enhancements**
+	
+* Added *hipblasStatusToString*
+	
+**Fixed**
+	
+* Added catch() blocks around API calls to prevent the leak of C++ exceptions
+	
+
+### rocFFT
+
+**Changes**
+	
+* Re-split device code into single-precision, double-precision, and miscellaneous kernels.
+	
+**Fixed Issues**
+	
+* double-precision planar->planar transpose.
+	
+* 3D transforms with unusual strides, for SBCC-optimized sizes.
+	
+* Improved buffer placement logic.
+
+For more information, refer to
+
+https://rocfft.readthedocs.io/en/rocm-4.3.0/
+	
+
+### hipFFT	
+
+**Fixed Issues**
+	
+* CMAKE updates
+	
+* Added callback API in hipfftXt.h header.
+
+
+### rocALUTION
+	
+**Enhancements**
+	
+* Support for gfx90a target
+	
+* Support for gfx1030 target
+	
+**Improvements**
+	
+* Install script
+	
+For more information, refer to
+	
+### rocTHRUST	
+
+**Enhancements**
+	
+* Updated to match upstream Thrust 1.11
+	
+* gfx90a support added
+	
+* gfx803 support re-enabled
+
+hipCUB	
+
+Enhancements
+
+* DiscardOutputIterator to backend header
+	
+
+# Machine Learning and High Performance Computing Software Stack for AMD GPU
+
+For an updated version of the software stack for AMD GPU, see
+
+https://rocmdocs.amd.com/en/latest/Installation_Guide/Installation-Guide.html#software-stack-for-amd-gpu
+
+
 ROCm 4.1
 --------------------------------------------------------------------------------
 
@@ -648,120 +1233,37 @@ ROCm 4.1
 ROCm 4.0
 --------------------------------------------------------------------------------
 
-### Key Features of AMD Instinct™ MI100 
+- Important features of the AMD Instinct™ MI100 accelerator include:
 
-Important features of the AMD Instinct™ MI100 accelerator include:
+  - Extended matrix core engine with Matrix Fused Multiply-Add (MFMA) for
+    mixed-precision arithmetic and operates on KxN matrices (FP32, FP16, BF16, Int8).
 
-* Extended matrix core engine with Matrix Fused Multiply-Add (MFMA) for mixed-precision arithmetic and operates on KxN matrices (FP32, FP16, BF16, Int8) 
+  - Added native support for the bfloat16 data type
 
-* Added native support for the bfloat16 data type
+  - 3 Infinity fabric connections per GPU enable a fully connected group of 4
+    GPUs in a ``hive``.
 
-* 3 Infinity fabric connections per GPU enable a fully connected group of 4 GPUs in a ‘hive’ 
+- Matrix Core Engines and GFX908 Considerations: The AMD CDNA architecture
+  builds on GCN’s foundation of scalars and vectors and adds matrices while
+  simultaneously adding support for new numerical formats for machine learning
+  and preserving backward compatibility for any software written for the GCN
+  architecture. These Matrix Core Engines add a new family of wavefront-level
+  instructions, the Matrix Fused MultiplyAdd or MFMA. The MFMA family performs
+  mixed-precision arithmetic and operates on KxN matrices using four different
+  types of input data: 8-bit integers (INT8), 16-bit half-precision FP (FP16),
+  16-bit brain FP (bf16), and 32-bit single-precision (FP32). All MFMA
+  instructions produce either a 32-bit integer (INT32) or FP32 output, which
+  reduces the likelihood of overflowing during the final accumulation stages of
+  matrix multiplication. On nodes with gfx908, MFMA instructions are available
+  to substantially speed up matrix operations. This hardware feature is used
+  only in matrix multiplications functions in rocBLAS and supports only three
+  base types f16_r, bf16_r, and f32_r. 
 
-![Screenshot](https://github.com/Rmalavally/ROCm/blob/master/images/keyfeatures.PNG)
+  - For half precision (f16_r and bf16_r) GEMM, use the function rocblas_gemm_ex, and set the compute_type parameter to f32_r.
 
+  - For single precision (f32_r) GEMM, use the function rocblas_sgemm.
 
-### Matrix Core Engines and GFX908 Considerations
-
-The AMD CDNA architecture builds on GCN’s foundation of scalars and vectors and adds matrices while simultaneously adding support for new numerical formats for machine learning and preserving backward compatibility for any software written for the GCN architecture. These Matrix Core Engines add a new family of wavefront-level instructions, the Matrix Fused MultiplyAdd or MFMA. The MFMA family performs mixed-precision arithmetic and operates on KxN matrices using four different types of input data: 8-bit integers (INT8), 16-bit half-precision FP (FP16), 16-bit brain FP (bf16), and 32-bit single-precision (FP32). All MFMA instructions produce either a 32-bit integer (INT32) or FP32 output, which reduces the likelihood of overflowing during the final accumulation stages of matrix multiplication.
-
-On nodes with gfx908, MFMA instructions are available to substantially speed up matrix operations. This hardware feature is used only in matrix multiplications functions in rocBLAS and supports only three base types f16_r, bf16_r, and f32_r. 
-
-* For half precision (f16_r and bf16_r) GEMM, use the function rocblas_gemm_ex, and set the compute_type parameter to f32_r.
-
-* For single precision (f32_r) GEMM, use the function rocblas_sgemm.
-
-* For single precision complex (f32_c) GEMM, use the function rocblas_cgemm.
-
-
-### References
-* For more information about bfloat16, see 
-
-https://rocblas.readthedocs.io/en/master/usermanual.html
-
-* For more details about AMD Instinct™ MI100 accelerator key features, see 
-
-https://www.amd.com/system/files/documents/instinct-mi100-brochure.pdf
-
-* For more information about the AMD Instinct MI100 accelerator, refer to the following sources:
-
-  - AMD CDNA whitepaper at https://www.amd.com/system/files/documents/amd-cdna-whitepaper.pdf
-  
-  - MI100 datasheet at https://www.amd.com/system/files/documents/instinct-mi100-brochure.pdf
-
-* AMD Instinct MI100/CDNA1 Shader Instruction Set Architecture (Dec. 2020) – This document describes the current environment, organization, and program state of AMD CDNA “Instinct MI100” devices. It details the instruction set and the microcode formats native to this family of processors that are accessible to programmers and compilers.
-
-https://developer.amd.com/wp-content/resources/CDNA1_Shader_ISA_14December2020.pdf
-
-
-## RAS Enhancements
-
-RAS (Reliability, Availability, and Accessibility) features provide help with data center GPU management. It is a method provided to users to track and manage data points via options implemented in the ROCm-SMI Command Line Interface (CLI) tool. 
-
-For more information about rocm-smi, see 
-
-https://github.com/RadeonOpenCompute/ROC-smi 
-
-The command options are wrappers of the system calls into the device driver interface as described here:
-
-https://dri.freedesktop.org/docs/drm/gpu/amdgpu.html#amdgpu-ras-support
-
-
-
-## Using CMake with AMD ROCm
-
-Most components in AMD ROCm support CMake 3.5 or higher out-of-the-box and do not require any special Find modules. A Find module is often used downstream to find the files by guessing locations of files with platform-specific hints. Typically, the Find module is required when the upstream is not built with CMake or the package configuration files are not available.
-
-AMD ROCm provides the respective config-file packages, and this enables find_package to be used directly. AMD ROCm does not require any Find module as the config-file packages are shipped with the upstream projects.
-
-For more information, see 
-
-https://rocmdocs.amd.com/en/latest/Installation_Guide/Using-CMake-with-AMD-ROCm.html
-
-
-## AMD ROCm and Mesa Multimedia
-
-AMD ROCm extends support to Mesa Multimedia. Mesa is an open-source software implementation of OpenGL, Vulkan, and other graphics API specifications. Mesa translates these specifications to vendor-specific graphics hardware drivers.
-
-For detailed installation instructions, refer to
-
-https://rocmdocs.amd.com/en/latest/Installation_Guide/Mesa-Multimedia-Installation.html
-
-
-## ROCm System Management Information 
-
-The following enhancements are made to ROCm System Management Interface (SMI).
-
-### Support for Printing PCle Information on AMD Instinct™100
-
-AMD ROCm extends support for printing PCle information on AMD Instinct MI100. 
-
-To check the pp_dpm_pcie file, use *"rocm-smi --showclocks"*.
-
-*/opt/rocm-4.0.0-6132/bin/rocm_smi.py  --showclocks*
-
-![Screenshot](https://github.com/Rmalavally/ROCm/blob/master/images/SMI.PNG)
-
-
-### New API for xGMI 
-
-Rocm_smi_lib now provides an API that exposes xGMI (inter-chip Global Memory Interconnect) throughput from one node to another. 
-
-Refer to the rocm_smi_lib API documentation for more details. 
-
-https://github.com/RadeonOpenCompute/ROCm/blob/master/ROCm_SMI_API_Guide_v4.0.pdf
-
-
-
-
-## AMD GPU Debugger Enhancements
-
-In this release, AMD GPU Debugger has the following enhancements:
-
-* ROCm v4.0 ROCgdb is based on gdb 10.1
-
-* Extended support for AMD Instinct™ MI100 
-
+  - For single precision complex (f32_c) GEMM, use the function rocblas_cgemm.
 
 ROCm 3.10
 --------------------------------------------------------------------------------
@@ -825,73 +1327,7 @@ For more information about RDC Python binding and the Prometheus plugin integrat
 
 https://github.com/RadeonOpenCompute/ROCm/blob/master/AMD_ROCm_DataCenter_Tool_User_Guide.pdf
 
-
-## ROCm SYSTEM MANAGEMENT INFORMATION 
-
-### System DMA (SDMA) Utilization
-
-Per-process, the SDMA usage is exposed via the ROCm SMI library. The structure rsmi_process_info_t is extended to include sdma_usage. sdma_usage is a 64-bit value that counts the duration (in microseconds) for which the SDMA engine was active during that process's lifetime. 
-
-For example, see the rsmi_compute_process_info_by_pid_get() API below.
-
-```
-
-/**
-* @brief This structure contains information specific to a process.
-*/
-  typedef struct {
-      - - -,
-      uint64_t sdma_usage; // SDMA usage in microseconds
-  } rsmi_process_info_t;
-  rsmi_status_t
-      rsmi_compute_process_info_by_pid_get(uint32_t pid,
-          rsmi_process_info_t *proc);
-
-```
-
-### ROCm-SMI Command Line Interface
-
-The SDMA usage per-process is available using the following command,
-
-```
-$ rocm-smi –showpids
-
-```
-
-For more information, see the ROCm SMI API guide at,
-
-https://github.com/RadeonOpenCompute/ROCm/blob/master/ROCm_SMI_API_Guide_v3.10.pdf
-
-
-### Enhanced ROCm SMI Library for Events
-
-ROCm-SMI library clients can now register to receive the following events: 
-
-* GPU PRE RESET: This reset event is sent to the client just before a GPU is going to be RESET.
-
-* GPU POST RESET: This reset event is sent to the client after a successful GPU RESET.
-
-* GPU THERMAL THROTTLE: This Thermal throttling event is sent if GPU clocks are throttled.
-
-
-For more information, refer to the ROCm SMI API Guide at:
-
-https://github.com/RadeonOpenCompute/ROCm/blob/master/ROCm_SMI_API_Guide_v3.10.pdf
-
-
-### ROCm SMI – Command Line Interface Hardware Topology
-
-This feature provides a matrix representation of the GPUs present in a system by providing information of the manner in which the nodes are connected. This is represented in terms of weights, hops, and link types between two given GPUs. It also provides the numa node and the CPU affinity associated with every GPU.
-
-![Screenshot](https://github.com/Rmalavally/ROCm/blob/master/images/CLI1.PNG)
-
-![Screenshot](https://github.com/Rmalavally/ROCm/blob/master/images/CLI2.PNG)
-
-
-## ROCm MATH and COMMUNICATION LIBRARIES
-
-### New rocSOLVER APIs
-The following new rocSOLVER APIs are added in this release:
+- New rocSOLVER APIs: The following new rocSOLVER APIs are added in this release:
 
 ![Screenshot](https://github.com/Rmalavally/ROCm/blob/master/images/rocsolverAPI.PNG)
 
@@ -899,494 +1335,67 @@ For more information, refer to
 
 https://rocsolver.readthedocs.io/en/latest/userguide_api.html
 
-### RCCL Alltoallv Support in PyTorch
-
-The AMD ROCm v3.10 release includes a new API for ROCm Communication Collectives Library (RCCL). This API sends data from all to all ranks and each rank provides arrays of input/output data counts and offsets. 
-
-For details about the functions and parameters, see 
-
-https://rccl.readthedocs.io/en/master/allapi.html
-
-## ROCm AOMP ENHANCEMENTS
-
-### AOMP Release 11.11-0
-
-The source code base for this release is the upstream LLVM 11 monorepo release/11.x sources with the hash value 
-
-*176249bd6732a8044d457092ed932768724a6f06*
-
-This release includes fixes to the internal Clang math headers:
-
-* This set of changes applies to clang internal headers to support OpenMP C, C++, and FORTRAN and for HIP C. This establishes consistency between NVPTX and AMDGCN offloading and between OpenMP, HIP, and CUDA. OpenMP uses function variants and header overlays to define device versions of functions. This causes clang LLVM IR codegen to mangled names of variants in both the definition and callsites of functions defined in the internal clang headers. These changes apply to headers found in the installation subdirectory lib/clang/11.0.0/include.
-
-* These changes temporarily eliminate the use of the libm bitcode libraries for C and C++. Although math functions are now defined with internal clang headers, a bitcode library of the C functions defined in the headers is still built for FORTRAN toolchain linking because FORTRAN cannot use c math headers. This bitcode library is installed in lib/libdevice/libm-.bc. The source build of this bitcode library is done with the aomp-extras repository and the component built script build_extras.sh. In the future, we will introduce across the board changes to eliminate massive header files for math libraries and replace them with linking to bitcode libraries.
-
-* Added support for -gpubnames in Flang Driver
-
-* Added an example category for Kokkos. The Kokkos example makefile detects if Kokkos is installed and, if not, it builds Kokkos from the Web. Refer to the script kokkos_build.sh in the bin directory on how to build Kokkos. Kokkos now builds cleanly with the OpenMP backend for simple test cases. 
-
-* Fixed hostrpc cmake race condition in the build of openmp
-
-* Add a fatal error if missing -Xopenmp-target or -march options when -fopenmp-targets is specified. However, we do forgive this requirement for offloading to host when there is only a single target and that target is the host.
-
-* Fix a bug in InstructionSimplify pass where a comparison of two constants of different sizes found in the optimization pass. This fixes issue #182 which was causing kokkos build failure.
-
-* Fix openmp error message output for no_rocm_device_lib, was asserting.
-
-* Changed linkage on constant per-kernel symbols from external to weaklinkageonly to prevent duplicate symbols when building kokkos.
-
-
+- RCCL: Alltoallv Support in PyTorch. The AMD ROCm v3.10 release includes a new
+  API for ROCm Communication Collectives Library (RCCL). This API sends data
+  from all to all ranks and each rank provides arrays of input/output data
+  counts and offsets. 
 
 ROCm 3.9
 --------------------------------------------------------------------------------
 
-## ROCm Compiler Enhancements
+- Improved GEMM Performance: Currently, rocblas_gemm_ext2() supports matrix
+  multiplication D <= alpha * A * B + beta * C, where the A, B, C, and D
+  matrices are single-precision float, column-major, and non-transposed, except
+  that the row stride of C may equal 0.
 
-The ROCm compiler support in the llvm-amdgpu-12.0.dev-amd64.deb package is enhanced to include support for OpenMP. To utilize this support, the additional package openmp-extras_12.9-0_amd64.deb is required. 
+- New Matrix Pruning Functions: In this release, the following new Matrix
+  Pruning functions are introduced. 
 
-Note, by default, both packages are installed during the ROCm v3.9 installation. For information about ROCm installation, refer to the ROCm Installation Guide. 
+- rocSOLVER General Matrix Singular Value Decomposition API: The rocSOLVER
+  General Matrix Singular Value Decomposition (GESVD) API is now available in
+  the AMD ROCm v3.9 release. 
 
-AMD ROCm supports the following compilers:
+- Fixed Defects:
 
-* C++ compiler - Clang++ 
-* C compiler - Clang  
-* Flang - FORTRAN compiler (FORTRAN 2003 standard)
+  - Random Soft Hang Observed When Running ResNet-Based Models
 
-**NOTE** : All of the above-mentioned compilers support:
-
-* OpenMP standard 4.5 and an evolving subset of the OpenMP 5.0 standard
-* OpenMP computational offloading to the AMD GPUs
-
-For more information about AMD ROCm compilers, see the Compiler Documentation section at,
-
-https://rocmdocs.amd.com/en/latest/index.html
-
-  
-### Auxiliary Package Supporting OpenMP
-
-The openmp-extras_12.9-0_amd64.deb auxiliary package supports OpenMP within the ROCm compiler. It contains OpenMP specific header files, which are installed in /opt/rocm/llvm/include as well as runtime libraries, fortran runtime libraries, and device bitcode files in /opt/rocm/llvm/lib. The auxiliary package also consists of examples in the /opt/rocm/llvm/examples folder.
-
-**NOTE**: The optional AOMP package resides in /opt/rocm//aomp/bin/clang and the ROCm compiler, which supports OpenMP for AMDGPU, is located in /opt/rocm/llvm/bin/clang.
-
-### AOMP Optional Package Deprecation
-
-Before the AMD ROCm v3.9 release, the optional AOMP package provided support for OpenMP. While AOMP is available in this release, the optional package may be deprecated from ROCm in the future. It is recommended you transition to the ROCm compiler or AOMP standalone releases for OpenMP support. 
-
-### Understanding ROCm Compiler OpenMP Support and AOMP OpenMP Support
-
-The AOMP OpenMP support in ROCm v3.9 is based on the standalone AOMP v11.9-0, with LLVM v11 as the underlying system. However, the ROCm compiler's OpenMP support is based on LLVM v12 (upstream).
-
-**NOTE**: Do not combine the object files from the two LLVM implementations. You must rebuild the application in its entirety using either the AOMP OpenMP or the ROCm OpenMP implementation.  
-
-### Example – OpenMP Using the ROCm Compiler
-
-```
-
-$ cat helloworld.c
-#include <stdio.h>
-#include <omp.h>
- int main(void) {
-  int isHost = 1; 
-#pragma omp target map(tofrom: isHost)
-  {
-    isHost = omp_is_initial_device();
-    printf("Hello world. %d\n", 100);
-    for (int i =0; i<5; i++) {
-      printf("Hello world. iteration %d\n", i);
-    }
-  }
-   printf("Target region executed on the %s\n", isHost ? "host" : "device");
-  return isHost;
-}
-$ /opt/rocm/llvm/bin/clang  -O3 -target x86_64-pc-linux-gnu -fopenmp -fopenmp-targets=amdgcn-amd-amdhsa -Xopenmp-target=amdgcn-amd-amdhsa -march=gfx900 helloworld.c -o helloworld
-$ export LIBOMPTARGET_KERNEL_TRACE=1
-$ ./helloworld
-DEVID: 0 SGN:1 ConstWGSize:256  args: 1 teamsXthrds:(   1X 256) reqd:(   1X   0) n:__omp_offloading_34_af0aaa_main_l7
-Hello world. 100
-Hello world. iteration 0
-Hello world. iteration 1
-Hello world. iteration 2
-Hello world. iteration 3
-Hello world. iteration 4
-Target region executed on the device
-
-```
-
-For more examples, see */opt/rocm/llvm/examples*.
-
-
-## ROCm SYSTEM MANAGEMENT INFORMATION
-
-The AMD ROCm v3.9 release consists of the following ROCm System Management Information (SMI) enhancements:
-
-* Shows the hardware topology
-
-* The ROCm-SMI showpids option shows per-process Compute Unit (CU) Occupancy, VRAM usage, and SDMA usage
-
-* Support for GPU Reset Event and Thermal Throttling Event in ROCm-SMI Library
-
-### ROCm-SMI Hardware Topology
-
-The ROCm-SMI Command Line Interface (CLI) is enhanced to include new options to denote GPU inter-connect topology in the system along with the relative distance between each other and the closest NUMA (CPU) node for each GPU.
-
-![Screenshot](https://github.com/Rmalavally/ROCm/blob/master/images/ROCMCLI1.PNG)
-
-### Compute Unit Occupancy
-
-The AMD ROCm stack now supports a user process in querying Compute Unit (CU) occupancy at a particular moment. This service can be accessed to determine if a process P is using sufficient compute units.
-
-A periodic collection is used to build the profile of a compute unit occupancy for a workload. 
-
-![Screenshot](https://github.com/Rmalavally/ROCm/blob/master/images/ROCMCLI2.PNG)
-
-
-ROCm supports this capability only on GFX9 devices. Users can access the functionality in two ways:
-
-* indirectly from the SMI library 
-
-* directly via Sysfs 
-
-**NOTE**: On systems that have both GFX9 and non-GFX9 devices, users should interpret the compute unit (CU) occupancy value carefully as the service does not support non-GFX9 devices. 
-
-### Accessing Compute Unit Occupancy Indirectly
-
-The ROCm System Management Interface (SMI) library provides a convenient interface to determine the CU occupancy for a process. To get the CU occupancy of a process reported in percentage terms, invoke the SMI interface using rsmi_compute_process_info_by_pid_get(). The value is reported through the member field cu_occupancy of struct rsmi_process_info_t.
-
-```
-/**
-   * @brief Encodes information about a process
-   * @cu_occupancy Compute Unit usage in percent
-   */
-  typedef struct {
-      - - -,
-      uint32_t cu_occupancy;
-  } rsmi_process_info_t;
-
-  /**
-   * API to get information about a process
-  rsmi_status_t
-      rsmi_compute_process_info_by_pid_get(uint32_t pid,
-          rsmi_process_info_t *proc);
-```
-
-
-### Accessing Compute Unit Occupancy Directly Using SYSFS
-
-Information provided by SMI library is built from sysfs. For every valid device, ROCm stack surfaces a file by the name cu_occupancy in Sysfs. Users can read this file to determine how that device is being used by a particular workload. The general structure of the file path is /proc/<pid>/stats_<gpuid>/cu_occupancy
- 
-```
-/**
-   * CU occupancy files for processes P1 and P2 on two devices with 
-   * ids: 1008 and 112326
-   */
-  /sys/devices/virtual/kfd/kfd/proc/<Pid_1>/stats_1008/cu_occupancy
-  /sys/devices/virtual/kfd/kfd/proc/<Pid_1>/stats_2326/cu_occupancy
-  /sys/devices/virtual/kfd/kfd/proc/<Pid_2>/stats_1008/cu_occupancy
-  /sys/devices/virtual/kfd/kfd/proc/<Pid_2>/stats_2326/cu_occupancy
-  
-// To get CU occupancy for a process P<i>
-  for each valid-device from device-list {
-    path-1 = Build path for cu_occupancy file;
-    path-2 = Build path for file Gpu-Properties;
-    cu_in_use += Open and Read the file path-1;
-    cu_total_cnt += Open and Read the file path-2;
-  }
-  cu_percent = ((cu_in_use * 100) / cu_total_cnt);
-  
-```
-
-### GPU Reset Event and Thermal Throttling Event
-
-The ROCm-SMI library clients can now register for the following events:
-
-![Screenshot](https://github.com/Rmalavally/ROCm/blob/master/images/ROCMCLI3.PNG)
-
-
-## ROCm Math and Communication Libraries
-
-### ‘rocfft_execution_info_set_stream’ API
-
-rocFFT is a software library for computing Fast Fourier Transforms (FFT). It is part of AMD’s software ecosystem based on ROCm. In addition to AMD GPU devices, the library can be compiled with the CUDA compiler using HIP tools for running on Nvidia GPU devices.
-
-The ‘rocfft_execution_info_set_stream’ API is a function to specify optional and additional information to control execution.  This API specifies the compute stream, which must be invoked before the call to rocfft_execute. Compute stream is the underlying device queue/stream where the library computations are inserted. 
-
-#### PREREQUISITES
-
-Using the compute stream API makes the following assumptions:
-
-* This stream already exists in the program and assigns work to the stream
-
-* The stream must be of type hipStream_t. Note, it is an error to pass the address of a hipStream_t object
-
-#### PARAMETERS
-
-Input
-
-* info execution info handle
-* stream underlying compute stream
-
-### Improved GEMM Performance
-
-Currently, rocblas_gemm_ext2() supports matrix multiplication D <= alpha * A * B + beta * C, where the A, B, C, and D matrices are single-precision float, column-major, and non-transposed, except that the row stride of C may equal 0. This means the first row of C is broadcast M times in C:
-
-![Screenshot](https://github.com/Rmalavally/ROCm/blob/master/images/GEMM2.PNG)
-
-If an optimized kernel solution for a particular problem is not available, a slow fallback algorithm is used, and the first time a fallback algorithm is used, the following message is printed to standard error:
-
-*“Warning: Using slow on-host algorithm, because it is not implemented in Tensile yet.”
-
-**NOTE**: ROCBLAS_LAYER controls the logging of the calls. It is recommended to use logging with the rocblas_gemm_ext2() feature, to identify the precise parameters which are passed to it.
-
-* Setting the ROCBLAS_LAYER environment variable to 2 will print the problem parameters as they are being executed.
-* Setting the ROCBLAS_LAYER environment variable to 4 will collect all of the sizes, and print them out at the end of program execution.
-
-For more logging information, refer to https://rocblas.readthedocs.io/en/latest/logging.html.
-
-
-### New Matrix Pruning Functions
-
-In this release, the following new Matrix Pruning functions are introduced. 
-
-![Screenshot](https://github.com/Rmalavally/ROCm/blob/master/images/matrix.png)
-
-
-### rocSOLVER General Matrix Singular Value Decomposition API
-
-The rocSOLVER General Matrix Singular Value Decomposition (GESVD) API is now available in the AMD ROCm v3.9 release. 
-
-GESVD computes the Singular Values and, optionally, the Singular Vectors of a general m-by-n matrix A (Singular Value Decomposition).
-
-The SVD of matrix A is given by:
-
-```
-A = U * S * V'
-
-```
-
-For more information, refer to 
-
-https://rocsolver.readthedocs.io/en/latest/userguide_api.html 
-
-
-## ROCm AOMP ENHANCEMENTS
-
-### AOMP v11.9-0
-
-The source code base for this release is the upstream LLVM 11 monorepo release/11.x sources as of August 18, 2020, with the hash value 
-
-*1e6907f09030b636054b1c7b01de36f281a61fa2*
-
-The llvm-project branch used to build this release is aomp11. In addition to completing the source tarball, the artifacts of this release include the file llvm-project.patch. This file shows the delta from the llvm-project upstream release/11.x. The size of this patch XXXX lines in XXX files. These changes include support for flang driver, OMPD support, and the hsa libomptarget plugin. The goal is to reduce this with continued upstreaming activity.
-
-The changes for this release of AOMP are:
-
-* Fix compiler warnings for build_project.sh and build_openmp.sh.
-
-* Fix: [flang] The AOMP 11.7-1 Fortran compiler claims to support the -isystem flag, but ignores it.
-
-* Fix: [flang] producing internal compiler error when a character is used with KIND.
-
-* Fix: [flang] openmp map clause on complex allocatable expressions !$omp target data map( chunk%tiles(1)%field%density0).
-
-* DeviceRTL memory footprint has been reduced from ~2.3GB to ~770MB for AMDGCN target.
-
-* Workaround for red_bug_51 failing on gfx908.
-
-* Switch to python3 for ompd and rocgdb.
-
-* Now require cmake 3.13.4 to compile from source.
-
-* Fix aompcc to accept file type cxx.
-
-
-### AOMP v11.08-0
-
-The source code base for this release is the upstream LLVM 11 monorepo release/11.x sources as of August 18, 2020 with the hash value 
-
-*aabff0f7d564b22600b33731e0d78d2e70d060b4*
-
-The amd-llvm-project branch used to build this release is amd-stg-openmp. In addition to complete source tarball, the artifacts of this release includes the file llvm-project.patch. This file shows the delta from the llvm-project upstream release/11.x which is currently at 32715 lines in 240 files. These changes include support for flang driver, OMPD support and the hsa libomptarget plugin. Our goal is to reduce this with continued upstreaming activity.
-
-These are the major changes for this release of AOMP:
-
-* Switch to the LLVM 11.x stable code base.
-
-* OMPD updates for flang.
-
-* To support debugging OpenMP, selected OpenMP runtime sources are included in lib-debug/src/openmp. The ROCgdb debugger will find these automatically.
-
-* Threadsafe hsa plugin for libomptarget.
-
-* Updates to support device libraries.
-
-* Openmpi configure issue with real16 resolved.
-
-* DeviceRTL memory use is now independent of number of openmp binaries.
-
-* Startup latency on first kernel launch reduced by order of magnitude.
-
-### AOMP v11.07-1
-
-The source code base for this release is the upstream LLVM 11 monorepo development sources as July 10, 2020 with hash valued 979c5023d3f0656cf51bd645936f52acd62b0333 The amd-llvm-project branch used to build this release is amd-stg-openmp. In addition to complete source tarball, the artifacts of this release includes the file llvm-project.patch. This file shows the delta from the llvm-project upstream trunk which is currently at 34121 lines in 277 files. Our goal is to reduce this with continued upstreaming activity.
-
-* Inclusion of OMPD support which is not yet upstream
-
-* Build of ROCgdb
-
-* Host runtime optimisation. GPU image information is now mostly read on the host instead of from the GPU.
-
-* Fixed the source build scripts so that building from the source tarball does not fail because of missing test directories. This fixes issue #116.
-
-
-# Fixed Defects
-
-The following defects are fixed in this release:
-
-* Random Soft Hang Observed When Running ResNet-Based Models
-* (AOMP) ‘Undefined Hidden Symbol’ Linker Error Causes Compilation Failure in HIP
-* MIGraphx -> test_gpu_ops_test FAILED
-* Unable to install RDC on CentOS/RHEL 7.8/8.2 & SLES
+  - MIGraphx -> test_gpu_ops_test FAILED
 
 ROCm 3.7
 --------------------------------------------------------------------------------
 
-## AOMP ENHANCEMENTS
+- ROCm COMMUNICATIONS COLLECTIVE LIBRARY
 
-AOMP is a scripted build of LLVM. It supports OpenMP target offload on AMD GPUs. Since AOMP is a Clang/LLVM compiler, it also supports GPU offloading with HIP, CUDA, and OpenCL.
+  - Compatibility with NVIDIA Communications Collective Library v2\.7 API
 
-The following enhancements are made for AOMP in this release: 
-* OpenMP 5.0 is enabled by default. You can use -fopenmp-version=45 for OpenMP 4.5 compliance
-* Restructured to include the ROCm compiler
-* B=Bitcode search path using hip policy HIP_DEVICE_LIB_PATH and hip-devic-lib command line option to enable global_free for kmpc_impl_free
+  - ROCm Communications Collective Library (RCCL) is now compatible with the
+    NVIDIA Communications Collective Library (NCCL) v2.7 API.
 
-Restructured hostrpc, including:
-* Replaced hostcall register functions with handlePayload(service, payload). Note, handlPayload has a simple switch to call the correct service handler function.
-* Removed the WITH_HSA macro
-* Moved the hostrpc stubs and host fallback functions into a single library and the include file. This enables the stubs openmp cpp source instead of hip and reorganizes the directory openmp/libomptarget/hostrpc.
-* Moved hostrpc_invoke.cl to DeviceRTLs/amdgcn.
-* Generalized the vargs processing in printf to work for any vargs function to execute on the host, including a vargs function that uses a function pointer.
-* Reorganized files, added global_allocate and global_free.
-* Fixed llvm TypeID enum to match the current upstream llvm TypeID.
-* Moved strlen_max function inside the declare target #ifdef _DEVICE_GPU in hostrpc.cpp to resolve linker failure seen in pfspecifier_str smoke test.
-* Fixed AOMP_GIT_CHECK_BRANCH in aomp_common_vars to not block builds in Red Hat if the repository is on a specific commit hash.
-* Simplified and reduced the size of openmp host runtime
-* Switched to default OpenMP 5.0
+  - RCCL (pronounced "Rickle") is a stand-alone library of standard collective
+    communication routines for GPUs, implementing all-reduce, all-gather,
+    reduce, broadcast, reduce-scatter, gather, scatter, and all-to-all. There is
+    also initial support for direct GPU-to-GPU send and receive operations. It
+    has been optimized to achieve high bandwidth on platforms using PCIe, xGMI
+    as well as networking using InfiniBand Verbs or TCP/IP sockets. RCCL
+    supports an arbitrary number of GPUs installed in a single node or multiple
+    nodes, and can be used in either single- or multi-process (e.g., MPI)
+    applications.
 
-For more information, see https://github.com/ROCm-Developer-Tools/aomp
-     
+  - The collective operations are implemented using ring and tree algorithms and
+    have been optimized for throughput and latency. For best performance, small
+    operations can be either batched into larger operations or aggregated
+    through the API.
 
-## ROCm COMMUNICATIONS COLLECTIVE LIBRARY
+  - For more information about RCCL APIs and compatibility with NCCL v2.7, see
+    https://rccl.readthedocs.io/en/develop/index.html
 
-### Compatibility with NVIDIA Communications Collective Library v2\.7 API
+- rocSolver: Singular Value Decomposition of Bi-diagonal Matrices.
+  Rocsolver_bdsqr now computes the Singular Value Decomposition (SVD) of
+  bi-diagonal matrices. It is an auxiliary function for the SVD of general
+  matrices (function rocsolver_gesvd). 
 
-ROCm Communications Collective Library (RCCL) is now compatible with the NVIDIA Communications Collective Library (NCCL) v2.7 API.
-
-RCCL (pronounced "Rickle") is a stand-alone library of standard collective communication routines for GPUs, implementing all-reduce, all-gather, reduce, broadcast, reduce-scatter, gather, scatter, and all-to-all. There is also initial support for direct GPU-to-GPU send and receive operations. It has been optimized to achieve high bandwidth on platforms using PCIe, xGMI as well as networking using InfiniBand Verbs or TCP/IP sockets. RCCL supports an arbitrary number of GPUs installed in a single node or multiple nodes, and can be used in either single- or multi-process (e.g., MPI) applications.
-
-The collective operations are implemented using ring and tree algorithms and have been optimized for throughput and latency. For best performance, small operations can be either batched into larger operations or aggregated through the API.
-
-For more information about RCCL APIs and compatibility with NCCL v2.7, see
-https://rccl.readthedocs.io/en/develop/index.html
-
-
-## Singular Value Decomposition of Bi\-diagonal Matrices
-
-Rocsolver_bdsqr now computes the Singular Value Decomposition (SVD) of bi-diagonal matrices. It is an auxiliary function for the SVD of general matrices (function rocsolver_gesvd). 
-
-BDSQR computes the singular value decomposition (SVD) of a n-by-n bidiagonal matrix B.
-
-The SVD of B has the following form:
-
-B = Ub * S * Vb'
-where 
-•	S is the n-by-n diagonal matrix of singular values of B
-•	the columns of Ub are the left singular vectors of B
-•	the columns of Vb are its right singular vectors
-
-The computation of the singular vectors is optional; this function accepts input matrices U (of size nu-by-n) and V (of size n-by-nv) that are overwritten with U*Ub and Vb’*V. If nu = 0 no left vectors are computed; if nv = 0 no right vectors are computed.
-
-Optionally, this function can also compute Ub’*C for a given n-by-nc input matrix C.
-
-PARAMETERS
-
-•	[in] handle: rocblas_handle.
-
-•	[in] uplo: rocblas_fill.
-
-Specifies whether B is upper or lower bidiagonal.
-
-•	[in] n: rocblas_int. n >= 0.
-
-The number of rows and columns of matrix B.
-
-•	[in] nv: rocblas_int. nv >= 0. 
-
-The number of columns of matrix V.
-
-•	[in] nu: rocblas_int. nu >= 0. 
-
-The number of rows of matrix U.
-
-•	[in] nc: rocblas_int. nu >= 0. 
-
-The number of columns of matrix C.
-
-•	[inout] D: pointer to real type. Array on the GPU of dimension n.
-
-On entry, the diagonal elements of B. On exit, if info = 0, the singular values of B in decreasing order; if info > 0, the diagonal elements of a bidiagonal matrix orthogonally equivalent to B.
-
-•	[inout] E: pointer to real type. Array on the GPU of dimension n-1.
-
-On entry, the off-diagonal elements of B. On exit, if info > 0, the off-diagonal elements of a bidiagonal matrix orthogonally equivalent to B (if info = 0 this matrix converges to zero).
-
-•	[inout] V: pointer to type. Array on the GPU of dimension ldv*nv.
-
-On entry, the matrix V. On exit, it is overwritten with Vb’*V. (Not referenced if nv = 0).
-
-•	[in] ldv: rocblas_int. ldv >= n if nv > 0, or ldv >=1 if nv = 0.
-
-Specifies the leading dimension of V.
-
-•	[inout] U: pointer to type. Array on the GPU of dimension ldu*n.
-
-On entry, the matrix U. On exit, it is overwritten with U*Ub. (Not referenced if nu = 0).
-
-•	[in] ldu: rocblas_int. ldu >= nu.
-
-Specifies the leading dimension of U.
-
-•	[inout] C: pointer to type. Array on the GPU of dimension ldc*nc.
-
-On entry, the matrix C. On exit, it is overwritten with Ub’*C. (Not referenced if nc = 0).
-
-•	[in] ldc: rocblas_int. ldc >= n if nc > 0, or ldc >=1 if nc = 0.
-
-Specifies the leading dimension of C.
-
-•	[out] info: pointer to a rocblas_int on the GPU.
-
-If info = 0, successful exit. If info = i > 0, i elements of E have not converged to zero.
-
-For more information, see
-https://rocsolver.readthedocs.io/en/latest/userguide_api.html#rocsolver-type-bdsqr
-
-
-### rocSPARSE_gemmi\() Operations for Sparse Matrices
-
-This enhancement provides a dense matrix sparse matrix multiplication using the CSR storage format.
-rocsparse_gemmi multiplies the scalar αα with a dense m×km×k matrix AA and the sparse k×nk×n matrix BB defined in the CSR storage format, and adds the result to the dense m×nm×n matrix CC that is multiplied by the scalar ββ, such that
-C:=α⋅op(A)⋅op(B)+β⋅CC:=α⋅op(A)⋅op(B)+β⋅C
-with
-
-op(A)=⎧⎩⎨⎪⎪A,AT,AH,if trans_A == rocsparse_operation_noneif trans_A == rocsparse_operation_transposeif trans_A == rocsparse_operation_conjugate_transposeop(A)={A,if trans_A == rocsparse_operation_noneAT,if trans_A == rocsparse_operation_transposeAH,if trans_A == rocsparse_operation_conjugate_transpose
-
-and
-
-op(B)=⎧⎩⎨⎪⎪B,BT,BH,if trans_B == rocsparse_operation_noneif trans_B == rocsparse_operation_transposeif trans_B == rocsparse_operation_conjugate_transposeop(B)={B,if trans_B == rocsparse_operation_noneBT,if trans_B == rocsparse_operation_transposeBH,if trans_B == rocsparse_operation_conjugate_transpose
-Note: This function is non-blocking and executed asynchronously with the host. It may return before the actual computation has finished.
-
-For more information and examples, see
-https://rocsparse.readthedocs.io/en/master/usermanual.html#rocsparse-gemmi
+- rocSPARSE: Operations for Sparse Matrices. This enhancement provides a dense
+  matrix sparse matrix multiplication using the CSR storage format.
 
 ROCm 3.5
 --------------------------------------------------------------------------------
@@ -1616,7 +1625,7 @@ ROCm 2.3.0
 
 - Caffe2: Enabled multi-gpu support.
 
-- BLAS:
+- rocBLAS:
 
   - Introduces support and performance optimizations for Int8 GEMM.
 
@@ -1651,19 +1660,20 @@ ROCm 2.1.0
 ROCm 2.0.0
 --------------------------------------------------------------------------------
 
-- Vega 7nm support.
+- PyTorch/Caffe2:
 
-- fp16 support is enabled.
+  - Vega 7nm support.
 
-- Several bug fixes and performance enhancements.
+  - fp16 support is enabled.
 
-- Breaking changes are introduced in ROCm 2.0 which are not addressed upstream
-  yet. Meanwhile, please continue to use ROCm fork at https://github.com/ROCm/pytorch
+  - Several bug fixes and performance enhancements.
 
+  - Breaking changes are introduced in ROCm 2.0 which are not addressed upstream
+    yet. Meanwhile, please continue to use ROCm fork at https://github.com/ROCm/pytorch
 
-Improvements to ROCm Libraries
-rocSPARSE & hipSPARSE
-rocBLAS with improved DGEMM efficiency on Vega 7nm
+- rocSPARSE & hipSPARSE: introduction.
+
+- rocBLAS: Introduction with improved DGEMM efficiency on Vega 7nm.
 
 - MIOpen:
   
